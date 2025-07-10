@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Grid - Robot Adventure</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 80%, #0a0a23 0%, #1a1a2e 25%, #16213e 50%, #0f0f0f 100%);
+            font-family: 'Orbitron', monospace;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 20%, rgba(0, 255, 157, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(0, 255, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 90% 40%, rgba(255, 0, 128, 0.05) 0%, transparent 50%);
+            animation: ambient-glow 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes ambient-glow {
+            0% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .game-header {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        .game-title {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00ff9d 0%, #00d4ff 50%, #ff006e 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 3s ease-in-out infinite alternate, title-float 4s ease-in-out infinite;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 30px rgba(0, 255, 157, 0.3);
+            margin-bottom: 8px;
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        @keyframes title-float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .game-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            opacity: 0;
+            animation: fade-in-up 1s ease-out 0.5s forwards;
+        }
+
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .maze-container {
+            position: relative;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                inset 0 0 0 2px rgba(255, 255, 255, 0.1),
+                0 0 50px rgba(0, 255, 157, 0.2),
+                inset 0 0 50px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: container-pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes container-pulse {
+            0%, 100% { 
+                box-shadow: 
+                    inset 0 0 0 2px rgba(255, 255, 255, 0.1),
+                    0 0 50px rgba(0, 255, 157, 0.2),
+                    inset 0 0 50px rgba(0, 0, 0, 0.3); 
+            }
+            50% { 
+                box-shadow: 
+                    inset 0 0 0 2px rgba(255, 255, 255, 0.1),
+                    0 0 80px rgba(0, 255, 157, 0.4),
+                    inset 0 0 50px rgba(0, 0, 0, 0.3); 
+            }
+        }
+
+        .maze-canvas {
+            display: block;
+            background: transparent;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(0, 255, 157, 0.3);
+            color: #00ff9d;
+            padding: 15px 25px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 157, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 255, 157, 0.1);
+            border-color: #00ff9d;
+            transform: translateY(-3px);
+            box-shadow: 
+                0 10px 25px rgba(0, 0, 0, 0.3),
+                0 0 30px rgba(0, 255, 157, 0.4);
+        }
+
+        .control-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .victory-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            backdrop-filter: blur(20px);
+        }
+
+        .victory-content {
+            text-align: center;
+            color: white;
+            animation: victory-appear 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes victory-appear {
+            0% { 
+                transform: scale(0.3) rotateY(180deg); 
+                opacity: 0;
+                filter: blur(20px);
+            }
+            50% {
+                filter: blur(5px);
+            }
+            100% { 
+                transform: scale(1) rotateY(0deg); 
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+
+        .victory-title {
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff006e, #00d4ff, #00ff9d, #ff006e);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: victory-rainbow 2s linear infinite, victory-glow 1.5s ease-in-out infinite alternate;
+            text-shadow: 0 0 50px rgba(0, 255, 157, 0.5);
+        }
+
+        @keyframes victory-rainbow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        @keyframes victory-glow {
+            0% { filter: drop-shadow(0 0 20px rgba(0, 255, 157, 0.5)); }
+            100% { filter: drop-shadow(0 0 40px rgba(255, 0, 110, 0.8)); }
+        }
+
+        .instructions {
+            position: absolute;
+            top: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 400;
+            z-index: 100;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .stats-panel {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            color: #00ff9d;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            z-index: 100;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #00ff9d;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particle-float 4s linear infinite;
+        }
+
+        @keyframes particle-float {
+            0% { 
+                opacity: 0;
+                transform: translateY(100vh) scale(0);
+            }
+            10% {
+                opacity: 1;
+                transform: translateY(90vh) scale(1);
+            }
+            90% {
+                opacity: 1;
+                transform: translateY(-10vh) scale(1);
+            }
+            100% { 
+                opacity: 0;
+                transform: translateY(-20vh) scale(0);
+            }
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(0, 255, 157, 0.3);
+            border-top: 3px solid #00ff9d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .difficulty-selector {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+        
+        .difficulty-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s ease;
+        }
+        
+        .difficulty-btn.active {
+            background: rgba(0, 255, 157, 0.1);
+            border-color: #00ff9d;
+            color: #00ff9d;
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
+        }
+        
+        .difficulty-btn:hover {
+            border-color: rgba(0, 255, 157, 0.4);
+        }
+        
+        .energy-bar {
+            position: absolute;
+            top: 130px;
+            left: 40px;
+            width: 150px;
+            height: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 6px;
+            overflow: hidden;
+            z-index: 100;
+        }
+        
+        .energy-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #ff006e, #00d4ff, #00ff9d);
+            transition: width 0.3s ease;
+        }
+        
+        .energy-label {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .status-message {
+            position: absolute;
+            top: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: #00ff9d;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            z-index: 100;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="game-title">NEXUS GRID</div>
+            <div class="game-subtitle">Neural Maze Protocol</div>
+        </div>
+        
+        <div class="instructions">
+            Navigate the quantum maze • WASD or Arrow Keys
+        </div>
+        
+        <div class="status-message" id="statusMessage">Maze generation optimized!</div>
+
+        <div class="stats-panel">
+            <div>MOVES: <span id="moveCount">0</span></div>
+            <div>TIME: <span id="timeCount">00:00</span></div>
+            <div>LEVEL: <span id="levelCount">1</span></div>
+        </div>
+        
+        <div class="energy-bar">
+            <div class="energy-label">ROBOT ENERGY</div>
+            <div class="energy-fill" id="energyFill"></div>
+        </div>
+
+        <div class="maze-container">
+            <canvas id="mazeCanvas" class="maze-canvas" width="900" height="700"></canvas>
+        </div>
+        
+        <div class="difficulty-selector">
+            <button class="difficulty-btn" id="easyBtn">Easy</button>
+            <button class="difficulty-btn active" id="mediumBtn">Medium</button>
+            <button class="difficulty-btn" id="hardBtn">Hard</button>
+        </div>
+        
+        <div class="controls">
+            <button class="control-btn" onclick="generateNewMaze()">
+                <span>New Grid</span>
+            </button>
+            <button class="control-btn" onclick="toggleView()">
+                <span>Cyber Mode</span>
+            </button>
+            <button class="control-btn" onclick="showHint()">
+                <span>Neural Link</span>
+            </button>
+            <button class="control-btn" onclick="activateBoost()">
+                <span>Quantum Boost</span>
+            </button>
+        </div>
+
+        <div class="victory-overlay" id="victoryOverlay">
+            <div class="victory-content">
+                <div class="victory-title">GRID CONQUERED</div>
+                <p style="font-size: 1.3rem; margin-bottom: 30px; color: rgba(255, 255, 255, 0.8);">Neural pathways successfully mapped</p>
+                <button class="control-btn" onclick="startNewGame()" style="font-size: 1.1rem; padding: 20px 40px;">
+                    <span>Initialize Next Grid</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        class ModernRobotMaze {
+            constructor() {
+                this.canvas = document.getElementById('mazeCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.cellSize = 28;
+                this.cols = Math.floor(this.canvas.width / this.cellSize);
+                this.rows = Math.floor(this.canvas.height / this.cellSize);
+                
+                // Ensure canvas dimensions are multiples of cell size
+                this.canvas.width = this.cols * this.cellSize;
+                this.canvas.height = this.rows * this.cellSize;
+                
+                this.robot = { 
+                    x: 1, 
+                    y: 1, 
+                    targetX: 1, 
+                    targetY: 1,
+                    animationProgress: 0,
+                    trail: [],
+                    rotation: 0,
+                    energy: 1.0
+                };
+                this.exit = { x: this.cols - 2, y: this.rows - 2, rotation: 0, pulse: 0 };
+                this.viewMode = 'modern';
+                this.hintMode = false;
+                this.gameStartTime = Date.now();
+                this.moveCount = 0;
+                this.level = 1;
+                this.difficulty = 'medium';
+                this.boostActive = false;
+                this.boostTime = 0;
+                
+                this.maze = [];
+                this.solution = [];
+                this.particles = [];
+                this.scanLines = [];
+                
+                this.generateMaze();
+                this.setupControls();
+                this.createParticles();
+                this.hideLoading();
+                this.gameLoop();
+            }
+
+            hideLoading() {
+                setTimeout(() => {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    this.showStatusMessage("Maze generation optimized!");
+                }, 1000);
+            }
+            
+            showStatusMessage(message) {
+                const element = document.getElementById('statusMessage');
+                element.textContent = message;
+                element.style.opacity = 1;
+                setTimeout(() => {
+                    element.style.opacity = 0;
+                }, 2000);
+            }
+
+            createParticles() {
+                for (let i = 0; i < 5; i++) {
+                    this.createParticle();
+                }
+            }
+
+            createParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 4 + 's';
+                particle.style.animationDuration = (3 + Math.random() * 2) + 's';
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                    this.createParticle();
+                }, 4000);
+            }
+
+            generateMaze() {
+                this.maze = Array(this.rows).fill().map(() => Array(this.cols).fill(1));
+                const stack = [];
+                const start = { x: 1, y: 1 };
+                this.maze[start.y][start.x] = 0;
+                stack.push(start);
+                
+                // Adjust complexity based on difficulty
+                let pathComplexity = 0.75;
+                if (this.difficulty === 'easy') pathComplexity = 0.6;
+                if (this.difficulty === 'hard') pathComplexity = 0.9;
+                
+                const directions = [
+                    { x: 0, y: -2 }, { x: 2, y: 0 }, 
+                    { x: 0, y: 2 }, { x: -2, y: 0 }
+                ];
+                
+                while (stack.length > 0) {
+                    const current = stack[stack.length - 1];
+                    const neighbors = [];
+                    
+                    for (const dir of directions) {
+                        const nx = current.x + dir.x;
+                        const ny = current.y + dir.y;
+                        
+                        if (nx > 0 && nx < this.cols - 1 && ny > 0 && ny < this.rows - 1) {
+                            if (this.maze[ny][nx] === 1) {
+                                neighbors.push({ x: nx, y: ny, dir });
+                            }
+                        }
+                    }
+                    
+                    if (neighbors.length > 0) {
+                        const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                        this.maze[next.y][next.x] = 0;
+                        this.maze[current.y + next.dir.y / 2][current.x + next.dir.x / 2] = 0;
+                        stack.push(next);
+                    } else {
+                        stack.pop();
+                    }
+                }
+                
+                // Instead of adding dead ends, we'll ensure connectivity
+                this.ensureConnectivity();
+                
+                // Find the farthest cell from the start
+                this.findFarthestExit();
+                
+                this.findSolution();
+            }
+            
+            ensureConnectivity() {
+                // Create a list of all accessible cells
+                const accessibleCells = [];
+                for (let y = 0; y < this.rows; y++) {
+                    for (let x = 0; x < this.cols; x++) {
+                        if (this.maze[y][x] === 0) {
+                            accessibleCells.push({x, y});
+                        }
+                    }
+                }
+                
+                // Connect any disconnected areas
+                const visited = new Set();
+                const regions = [];
+                
+                for (const cell of accessibleCells) {
+                    const key = `${cell.x},${cell.y}`;
+                    if (!visited.has(key)) {
+                        const region = [];
+                        const queue = [cell];
+                        
+                        while (queue.length > 0) {
+                            const current = queue.shift();
+                            const currentKey = `${current.x},${current.y}`;
+                            
+                            if (!visited.has(currentKey)) {
+                                visited.add(currentKey);
+                                region.push(current);
+                                
+                                const neighbors = [
+                                    { x: 0, y: -1 }, { x: 1, y: 0 }, 
+                                    { x: 0, y: 1 }, { x: -1, y: 0 }
+                                ];
+                                
+                                for (const dir of neighbors) {
+                                    const nx = current.x + dir.x;
+                                    const ny = current.y + dir.y;
+                                    
+                                    if (this.isValidCell(nx, ny) && !visited.has(`${nx},${ny}`)) {
+                                        queue.push({x: nx, y: ny});
+                                    }
+                                }
+                            }
+                        }
+                        
+                        regions.push(region);
+                    }
+                }
+                
+                // If we have more than one region, connect them
+                if (regions.length > 1) {
+                    for (let i = 1; i < regions.length; i++) {
+                        const regionA = regions[0];
+                        const regionB = regions[i];
+                        
+                        // Find the closest points between regions
+                        let minDistance = Infinity;
+                        let connectA = null;
+                        let connectB = null;
+                        
+                        for (const cellA of regionA) {
+                            for (const cellB of regionB) {
+                                const distance = Math.abs(cellA.x - cellB.x) + Math.abs(cellA.y - cellB.y);
+                                if (distance < minDistance) {
+                                    minDistance = distance;
+                                    connectA = cellA;
+                                    connectB = cellB;
+                                }
+                            }
+                        }
+                        
+                        // Create a path between the regions
+                        if (connectA && connectB) {
+                            let currentX = connectA.x;
+                            let currentY = connectA.y;
+                            
+                            while (currentX !== connectB.x || currentY !== connectB.y) {
+                                if (currentX < connectB.x) currentX++;
+                                else if (currentX > connectB.x) currentX--;
+                                
+                                if (currentY < connectB.y) currentY++;
+                                else if (currentY > connectB.y) currentY--;
+                                
+                                this.maze[currentY][currentX] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            isValidCell(x, y) {
+                return x >= 0 && x < this.cols && y >= 0 && y < this.rows && this.maze[y][x] === 0;
+            }
+            
+            findFarthestExit() {
+                const distances = Array(this.rows).fill().map(() => Array(this.cols).fill(-1));
+                const queue = [{x: this.robot.x, y: this.robot.y, dist: 0}];
+                distances[this.robot.y][this.robot.x] = 0;
+                
+                let maxDistance = 0;
+                let farthestCell = {x: this.cols - 2, y: this.rows - 2};
+                
+                while (queue.length > 0) {
+                    const {x, y, dist} = queue.shift();
+                    
+                    if (dist > maxDistance) {
+                        maxDistance = dist;
+                        farthestCell = {x, y};
+                    }
+                    
+                    const neighbors = [
+                        {x: x + 1, y: y}, {x: x - 1, y: y},
+                        {x: x, y: y + 1}, {x: x, y: y - 1}
+                    ];
+                    
+                    for (const neighbor of neighbors) {
+                        if (this.isValidCell(neighbor.x, neighbor.y) && 
+                            distances[neighbor.y][neighbor.x] === -1) {
+                            distances[neighbor.y][neighbor.x] = dist + 1;
+                            queue.push({x: neighbor.x, y: neighbor.y, dist: dist + 1});
+                        }
+                    }
+                }
+                
+                this.exit = { ...this.exit, x: farthestCell.x, y: farthestCell.y };
+            }
+
+            findSolution() {
+                const queue = [{ x: this.robot.x, y: this.robot.y, path: [] }];
+                const visited = new Set();
+                
+                while (queue.length > 0) {
+                    const { x, y, path } = queue.shift();
+                    const key = `${x},${y}`;
+                    
+                    if (visited.has(key)) continue;
+                    visited.add(key);
+                    
+                    if (x === this.exit.x && y === this.exit.y) {
+                        this.solution = path;
+                        return;
+                    }
+                    
+                    const directions = [
+                        { x: 0, y: -1 }, { x: 1, y: 0 }, 
+                        { x: 0, y: 1 }, { x: -1, y: 0 }
+                    ];
+                    
+                    for (const dir of directions) {
+                        const nx = x + dir.x;
+                        const ny = y + dir.y;
+                        
+                        if (this.isValidMove(nx, ny) && !visited.has(`${nx},${ny}`)) {
+                            queue.push({ 
+                                x: nx, 
+                                y: ny, 
+                                path: [...path, { x: nx, y: ny }] 
+                            });
+                        }
+                    }
+                }
+            }
+
+            isValidMove(x, y) {
+                return x >= 0 && x < this.cols && y >= 0 && y < this.rows && this.maze[y][x] === 0;
+            }
+
+            moveRobot(dx, dy) {
+                const newX = this.robot.x + dx;
+                const newY = this.robot.y + dy;
+                
+                if (this.isValidMove(newX, newY) && this.robot.animationProgress === 0) {
+                    this.robot.trail.push({
+                        x: this.robot.x * this.cellSize + this.cellSize / 2,
+                        y: this.robot.y * this.cellSize + this.cellSize / 2,
+                        time: Date.now(),
+                        intensity: 1.0
+                    });
+                    
+                    this.robot.targetX = newX;
+                    this.robot.targetY = newY;
+                    this.robot.animationProgress = 0.1;
+                    this.moveCount++;
+                    document.getElementById('moveCount').textContent = this.moveCount;
+                    
+                    // Set rotation based on movement direction
+                    if (dx > 0) this.robot.rotation = 0;
+                    else if (dx < 0) this.robot.rotation = Math.PI;
+                    else if (dy > 0) this.robot.rotation = Math.PI / 2;
+                    else if (dy < 0) this.robot.rotation = -Math.PI / 2;
+                    
+                    if (this.robot.trail.length > 30) {
+                        this.robot.trail.shift();
+                    }
+                    
+                    // Consume energy on move
+                    this.robot.energy = Math.max(0, this.robot.energy - 0.01);
+                }
+            }
+
+            updateRobotAnimation() {
+                if (this.robot.animationProgress > 0) {
+                    this.robot.animationProgress += this.boostActive ? 0.25 : 0.12;
+                    
+                    if (this.robot.animationProgress >= 1) {
+                        this.robot.animationProgress = 0;
+                        this.robot.x = this.robot.targetX;
+                        this.robot.y = this.robot.targetY;
+                        
+                        if (this.robot.x === this.exit.x && this.robot.y === this.exit.y) {
+                            this.showVictory();
+                        }
+                    }
+                }
+                
+                // Update exit rotation and pulse
+                this.exit.rotation += 0.01;
+                this.exit.pulse = Math.sin(Date.now() * 0.01) * 0.5 + 0.5;
+                
+                // Regenerate energy slowly
+                this.robot.energy = Math.min(1, this.robot.energy + 0.001);
+                document.getElementById('energyFill').style.width = `${this.robot.energy * 100}%`;
+                
+                // Update boost timer
+                if (this.boostActive) {
+                    this.boostTime--;
+                    if (this.boostTime <= 0) {
+                        this.boostActive = false;
+                    }
+                }
+            }
+
+            showVictory() {
+                document.getElementById('victoryOverlay').style.display = 'flex';
+                this.level++;
+                document.getElementById('levelCount').textContent = this.level;
+                
+                // Create victory particles
+                for (let i = 0; i < 100; i++) {
+                    this.createVictoryParticle();
+                }
+            }
+            
+            createVictoryParticle() {
+                const canvasRect = this.canvas.getBoundingClientRect();
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.width = '8px';
+                particle.style.height = '8px';
+                particle.style.left = (canvasRect.left + this.canvas.width/2) + 'px';
+                particle.style.top = (canvasRect.top + this.canvas.height/2) + 'px';
+                particle.style.animation = 'none';
+                particle.style.background = `hsl(${Math.random() * 360}, 100%, 70%)`;
+                document.body.appendChild(particle);
+                
+                // Animate explosion
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 50 + Math.random() * 200;
+                const duration = 800 + Math.random() * 700;
+                
+                const animation = particle.animate([
+                    { 
+                        transform: 'translate(0, 0) scale(1)',
+                        opacity: 1 
+                    },
+                    { 
+                        transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0)`,
+                        opacity: 0 
+                    }
+                ], {
+                    duration: duration,
+                    easing: 'cubic-bezier(0.2, 0.8, 0.4, 1)'
+                });
+                
+                animation.onfinish = () => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                };
+            }
+
+            setupControls() {
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key.toLowerCase()) {
+                        case 'w': case 'arrowup':
+                            this.moveRobot(0, -1);
+                            break;
+                        case 's': case 'arrowdown':
+                            this.moveRobot(0, 1);
+                            break;
+                        case 'a': case 'arrowleft':
+                            this.moveRobot(-1, 0);
+                            break;
+                        case 'd': case 'arrowright':
+                            this.moveRobot(1, 0);
+                            break;
+                    }
+                });
+                
+                // Setup difficulty buttons
+                document.getElementById('easyBtn').addEventListener('click', () => this.setDifficulty('easy'));
+                document.getElementById('mediumBtn').addEventListener('click', () => this.setDifficulty('medium'));
+                document.getElementById('hardBtn').addEventListener('click', () => this.setDifficulty('hard'));
+            }
+            
+            setDifficulty(level) {
+                this.difficulty = level;
+                document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(level + 'Btn').classList.add('active');
+                this.showStatusMessage(`Difficulty set to ${level.charAt(0).toUpperCase() + level.slice(1)}`);
+                this.generateNewMaze();
+            }
+
+            updateTimer() {
+                const elapsed = Math.floor((Date.now() - this.gameStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('timeCount').textContent = `${minutes}:${seconds}`;
+            }
+
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (this.viewMode === 'cyber') {
+                    this.renderCyberMode();
+                } else {
+                    this.renderModernMode();
+                }
+                
+                this.renderTrail();
+                this.renderExit();
+                this.renderRobot();
+                
+                if (this.hintMode) {
+                    this.renderHint();
+                }
+            }
+
+            renderModernMode() {
+                // Subtle grid background
+                this.ctx.strokeStyle = 'rgba(0, 255, 157, 0.05)';
+                this.ctx.lineWidth = 0.5;
+                
+                for (let x = 0; x <= this.cols; x++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x * this.cellSize, 0);
+                    this.ctx.lineTo(x * this.cellSize, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                for (let y = 0; y <= this.rows; y++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y * this.cellSize);
+                    this.ctx.lineTo(this.canvas.width, y * this.cellSize);
+                    this.ctx.stroke();
+                }
+                
+                // Render maze with modern styling
+                for (let y = 0; y < this.rows; y++) {
+                    for (let x = 0; x < this.cols; x++) {
+                        const cellX = x * this.cellSize;
+                        const cellY = y * this.cellSize;
+                        
+                        if (this.maze[y][x] === 1) {
+                            // Modern wall design
+                            const gradient = this.ctx.createLinearGradient(cellX, cellY, cellX + this.cellSize, cellY + this.cellSize);
+                            gradient.addColorStop(0, 'rgba(20, 30, 50, 0.9)');
+                            gradient.addColorStop(0.5, 'rgba(30, 40, 60, 0.8)');
+                            gradient.addColorStop(1, 'rgba(15, 25, 45, 0.9)');
+                            
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
+                            
+                            // Subtle border
+                            this.ctx.strokeStyle = 'rgba(0, 255, 157, 0.2)';
+                            this.ctx.lineWidth = 1;
+                            this.ctx.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+                            
+                            // Wall details
+                            this.ctx.strokeStyle = 'rgba(0, 255, 157, 0.05)';
+                            this.ctx.lineWidth = 1;
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(cellX, cellY);
+                            this.ctx.lineTo(cellX + this.cellSize, cellY + this.cellSize);
+                            this.ctx.moveTo(cellX + this.cellSize, cellY);
+                            this.ctx.lineTo(cellX, cellY + this.cellSize);
+                            this.ctx.stroke();
+                        } else {
+                            // Path with subtle glow
+                            const gradient = this.ctx.createRadialGradient(
+                                cellX + this.cellSize/2, cellY + this.cellSize/2, 0,
+                                cellX + this.cellSize/2, cellY + this.cellSize/2, this.cellSize/2
+                            );
+                            gradient.addColorStop(0, 'rgba(0, 20, 40, 0.3)');
+                            gradient.addColorStop(1, 'rgba(0, 10, 20, 0.1)');
+                            
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
+                            
+                            // Grid points
+                            this.ctx.fillStyle = 'rgba(0, 255, 157, 0.1)';
+                            this.ctx.beginPath();
+                            this.ctx.arc(cellX + this.cellSize/2, cellY + this.cellSize/2, 1, 0, Math.PI * 2);
+                            this.ctx.fill();
+                        }
+                    }
+                }
+            }
+
+            renderCyberMode() {
+                // Dark cyber background
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Scan lines effect
+                const time = Date.now() * 0.01;
+                for (let i = 0; i < 5; i++) {
+                    const y = (time * 50 + i * 100) % this.canvas.height;
+                    this.ctx.strokeStyle = `rgba(0, 255, 157, ${0.1 + Math.sin(time + i) * 0.05})`;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+                
+                // Cyber grid
+                this.ctx.strokeStyle = 'rgba(0, 255, 157, 0.15)';
+                this.ctx.lineWidth = 1;
+                
+                for (let x = 0; x <= this.cols; x++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x * this.cellSize, 0);
+                    this.ctx.lineTo(x * this.cellSize, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                for (let y = 0; y <= this.rows; y++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y * this.cellSize);
+                    this.ctx.lineTo(this.canvas.width, y * this.cellSize);
+                    this.ctx.stroke();
+                }
+                
+                // Render paths with neon glow
+                this.ctx.shadowBlur = 15;
+                this.ctx.shadowColor = '#00ff9d';
+                
+                for (let y = 0; y < this.rows; y++) {
+                    for (let x = 0; x < this.cols; x++) {
+                        if (this.maze[y][x] === 0) {
+                            const cellX = x * this.cellSize;
+                            const cellY = y * this.cellSize;
+                            
+                            this.ctx.strokeStyle = '#00ff9d';
+                            this.ctx.lineWidth = 2;
+                            this.ctx.strokeRect(cellX + 3, cellY + 3, this.cellSize - 6, this.cellSize - 6);
+                            
+                            // Add digital noise effect
+                            if (Math.random() > 0.7) {
+                                this.ctx.fillStyle = `rgba(0, 255, 157, ${Math.random() * 0.1})`;
+                                this.ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
+                            }
+                        }
+                    }
+                }
+                
+                this.ctx.shadowBlur = 0;
+            }
+
+            renderTrail() {
+                const now = Date.now();
+                this.robot.trail = this.robot.trail.filter(point => now - point.time < 3000);
+                
+                this.robot.trail.forEach((point, index) => {
+                    const age = now - point.time;
+                    const alpha = Math.max(0, 1 - age / 3000);
+                    const size = Math.max(1, 8 * alpha);
+                    
+                    this.ctx.save();
+                    this.ctx.globalAlpha = alpha * 0.8;
+                    this.ctx.fillStyle = '#00ff9d';
+                    this.ctx.shadowBlur = 15 * alpha;
+                    this.ctx.shadowColor = '#00ff9d';
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.restore();
+                });
+            }
+            
+            renderRobot() {
+                const progress = this.robot.animationProgress;
+                const currentX = this.robot.x * this.cellSize + this.cellSize/2;
+                const currentY = this.robot.y * this.cellSize + this.cellSize/2;
+                const targetX = this.robot.targetX * this.cellSize + this.cellSize/2;
+                const targetY = this.robot.targetY * this.cellSize + this.cellSize/2;
+                
+                // Calculate current position during animation
+                const x = currentX + (targetX - currentX) * progress;
+                const y = currentY + (targetY - currentY) * progress;
+                
+                this.ctx.save();
+                this.ctx.translate(x, y);
+                this.ctx.rotate(this.robot.rotation);
+                
+                // Robot body
+                this.ctx.fillStyle = '#00ff9d';
+                this.ctx.shadowBlur = 20;
+                this.ctx.shadowColor = '#00ff9d';
+                
+                // Draw robot as a triangle
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, -15);
+                this.ctx.lineTo(-10, 10);
+                this.ctx.lineTo(10, 10);
+                this.ctx.closePath();
+                this.ctx.fill();
+                
+                // Robot details
+                this.ctx.fillStyle = '#0a0a23';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Boost effect
+                if (this.boostActive) {
+                    this.ctx.fillStyle = '#ff006e';
+                    this.ctx.shadowBlur = 30;
+                    this.ctx.shadowColor = '#ff006e';
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 15, 10, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
+                this.ctx.restore();
+            }
+            
+            renderExit() {
+                const exitX = this.exit.x * this.cellSize + this.cellSize/2;
+                const exitY = this.exit.y * this.cellSize + this.cellSize/2;
+                const pulse = this.exit.pulse;
+                
+                this.ctx.save();
+                this.ctx.translate(exitX, exitY);
+                this.ctx.rotate(this.exit.rotation);
+                
+                // Portal effect
+                this.ctx.fillStyle = 'rgba(255, 0, 110, 0.8)';
+                this.ctx.shadowBlur = 30 + pulse * 20;
+                this.ctx.shadowColor = '#ff006e';
+                
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Inner ring
+                this.ctx.fillStyle = 'rgba(0, 212, 255, 0.8)';
+                this.ctx.shadowBlur = 20 + pulse * 10;
+                this.ctx.shadowColor = '#00d4ff';
+                
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Core
+                this.ctx.fillStyle = 'rgba(0, 255, 157, 1)';
+                this.ctx.shadowBlur = 15;
+                this.ctx.shadowColor = '#00ff9d';
+                
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, 5, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.restore();
+            }
+            
+            renderHint() {
+                if (this.solution.length === 0) return;
+                
+                this.ctx.save();
+                this.ctx.strokeStyle = '#00d4ff';
+                this.ctx.lineWidth = 3;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                this.ctx.shadowBlur = 15;
+                this.ctx.shadowColor = '#00d4ff';
+                this.ctx.globalAlpha = 0.7;
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(
+                    this.robot.x * this.cellSize + this.cellSize/2,
+                    this.robot.y * this.cellSize + this.cellSize/2
+                );
+                
+                for (const point of this.solution) {
+                    this.ctx.lineTo(
+                        point.x * this.cellSize + this.cellSize/2,
+                        point.y * this.cellSize + this.cellSize/2
+                    );
+                }
+                
+                this.ctx.stroke();
+                this.ctx.restore();
+            }
+
+            gameLoop() {
+                this.updateRobotAnimation();
+                this.updateTimer();
+                this.render();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+            
+            generateNewMaze() {
+                this.generateMaze();
+                this.robot.x = 1;
+                this.robot.y = 1;
+                this.robot.targetX = 1;
+                this.robot.targetY = 1;
+                this.robot.animationProgress = 0;
+                this.robot.trail = [];
+                this.moveCount = 0;
+                document.getElementById('moveCount').textContent = '0';
+                document.getElementById('victoryOverlay').style.display = 'none';
+                this.showStatusMessage("New maze generated!");
+            }
+        }
+
+        // Global functions for button actions
+        let game = new ModernRobotMaze();
+        
+        function startNewGame() {
+            game.gameStartTime = Date.now();
+            game.moveCount = 0;
+            document.getElementById('moveCount').textContent = '0';
+            game.generateNewMaze();
+        }
+        
+        function toggleView() {
+            game.viewMode = game.viewMode === 'modern' ? 'cyber' : 'modern';
+            document.querySelector('.control-btn:nth-child(2) span').textContent = 
+                game.viewMode === 'modern' ? 'Cyber Mode' : 'Modern Mode';
+            game.showStatusMessage(`View mode: ${game.viewMode}`);
+        }
+        
+        function showHint() {
+            game.hintMode = !game.hintMode;
+            document.querySelector('.control-btn:nth-child(3) span').textContent = 
+                game.hintMode ? 'Disable Link' : 'Neural Link';
+            game.showStatusMessage(game.hintMode ? "Neural link activated" : "Neural link disabled");
+        }
+        
+        function activateBoost() {
+            if (game.robot.energy > 0.3 && !game.boostActive) {
+                game.boostActive = true;
+                game.boostTime = 60;
+                game.robot.energy -= 0.3;
+                
+                // Create boost effect
+                for (let i = 0; i < 20; i++) {
+                    createBoostParticle();
+                }
+                
+                game.showStatusMessage("Quantum boost activated!");
+            } else {
+                game.showStatusMessage("Insufficient energy for boost!");
+            }
+        }
+        
+        function createBoostParticle() {
+            const canvasRect = game.canvas.getBoundingClientRect();
+            const robotX = game.robot.x * game.cellSize + game.cellSize/2;
+            const robotY = game.robot.y * game.cellSize + game.cellSize/2;
+            
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.width = '6px';
+            particle.style.height = '6px';
+            particle.style.left = (canvasRect.left + robotX) + 'px';
+            particle.style.top = (canvasRect.top + robotY) + 'px';
+            particle.style.animation = 'none';
+            particle.style.background = '#ff006e';
+            document.body.appendChild(particle);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 20 + Math.random() * 50;
+            
+            const animation = particle.animate([
+                { 
+                    transform: 'translate(0, 0) scale(1)',
+                    opacity: 1 
+                },
+                { 
+                    transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0)`,
+                    opacity: 0 
+                }
+            ], {
+                duration: 500,
+                easing: 'ease-out'
+            });
+            
+            animation.onfinish = () => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            };
+        }
+        
+        function generateNewMaze() {
+            game.generateNewMaze();
+        }
+    </script>
+</body>
+</html>
