@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Racing Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            color: white;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        #minimap {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            height: 200px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid white;
+            border-radius: 10px;
+            z-index: 100;
+        }
+        
+        .speedometer {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, #333, #111);
+            border: 3px solid #fff;
+            border-radius: 50%;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 200;
+            display: none;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="ui">
+            <div>Lap: <span id="lap">1</span>/3</div>
+            <div>Position: <span id="position">1</span>/4</div>
+            <div>Time: <span id="time">00:00</span></div>
+        </div>
+        
+        <div id="controls">
+            <div><strong>Controls:</strong></div>
+            <div>WASD or Arrow Keys - Drive</div>
+            <div>Space - Brake</div>
+            <div>C - Change Camera</div>
+        </div>
+        
+        <div id="minimap"></div>
+        
+        <div class="speedometer">
+            <span id="speed">0</span>
+        </div>
+        
+        <div id="gameOver">
+            <h2 id="gameOverTitle">Race Finished!</h2>
+            <p id="gameOverText"></p>
+            <button onclick="restartGame()">Race Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let scene, camera, renderer, player, bots = [], track, checkpoints = [];
+        let gameState = {
+            lap: 1,
+            position: 1,
+            startTime: Date.now(),
+            gameRunning: true,
+            cameraMode: 0
+        };
+        
+        const keys = {};
+        let playerSpeed = 0;
+        let playerRotation = 0;
+        
+        // Initialize the game
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setClearColor(0x87CEEB);
+            document.getElementById('gameContainer').appendChild(renderer.domElement);
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(50, 50, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Create track
+            createTrack();
+            
+            // Create player car
+            createPlayer();
+            
+            // Create bot cars
+            createBots();
+            
+            // Create checkpoints
+            createCheckpoints();
+            
+            // Set up event listeners
+            setupControls();
+            
+            // Start game loop
+            animate();
+        }
+        
+        function createTrack() {
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Track (oval shape)
+            const trackWidth = 8;
+            const trackSegments = [];
+            
+            // Create oval track with barriers
+            for (let i = 0; i < 64; i++) {
+                const angle = (i / 64) * Math.PI * 2;
+                const radius = 40 + Math.sin(angle * 2) * 10; // Varying radius for interesting track
+                
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                
+                // Track surface
+                const segmentGeometry = new THREE.BoxGeometry(trackWidth, 0.1, 3);
+                const segmentMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+                const segment = new THREE.Mesh(segmentGeometry, segmentMaterial);
+                segment.position.set(x, 0.05, z);
+                segment.rotation.y = angle + Math.PI / 2;
+                scene.add(segment);
+                
+                // Track markers
+                if (i % 8 === 0) {
+                    const markerGeometry = new THREE.BoxGeometry(1, 2, 1);
+                    const markerMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 });
+                    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+                    marker.position.set(x, 1, z);
+                    scene.add(marker);
+                }
+                
+                // Outer barriers
+                const barrierGeometry = new THREE.BoxGeometry(2, 3, 1);
+                const barrierMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+                const outerBarrier = new THREE.Mesh(barrierGeometry, barrierMaterial);
+                const innerBarrier = new THREE.Mesh(barrierGeometry, barrierMaterial);
+                
+                const outerRadius = radius + trackWidth/2 + 2;
+                const innerRadius = radius - trackWidth/2 - 2;
+                
+                outerBarrier.position.set(Math.cos(angle) * outerRadius, 1.5, Math.sin(angle) * outerRadius);
+                innerBarrier.position.set(Math.cos(angle) * innerRadius, 1.5, Math.sin(angle) * innerRadius);
+                
+                scene.add(outerBarrier);
+                scene.add(innerBarrier);
+                
+                trackSegments.push({ x, z, angle });
+            }
+            
+            track = trackSegments;
+        }
+        
+        function createPlayer() {
+            const carGroup = new THREE.Group();
+            
+            // Car body
+            const bodyGeometry = new THREE.BoxGeometry(4, 1, 2);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x0066cc });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.5;
+            body.castShadow = true;
+            carGroup.add(body);
+            
+            // Car roof
+            const roofGeometry = new THREE.BoxGeometry(2, 0.8, 1.5);
+            const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x004499 });
+            const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+            roof.position.set(0, 1.2, 0);
+            carGroup.add(roof);
+            
+            // Wheels
+            const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 8);
+            const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 });
+            
+            const wheels = [];
+            const wheelPositions = [
+                [-1.5, 0.4, -1.2], [1.5, 0.4, -1.2],
+                [-1.5, 0.4, 1.2], [1.5, 0.4, 1.2]
+            ];
+            
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.position.set(...pos);
+                wheel.rotation.z = Math.PI / 2;
+                carGroup.add(wheel);
+                wheels.push(wheel);
+            });
+            
+            carGroup.position.set(track[0].x, 1, track[0].z);
+            carGroup.userData = { 
+                speed: 0, 
+                maxSpeed: 0.8, 
+                acceleration: 0.02, 
+                friction: 0.95,
+                trackIndex: 0,
+                lap: 1,
+                wheels: wheels,
+                lastCheckpointTime: 0
+            };
+            
+            scene.add(carGroup);
+            player = carGroup;
+        }
+        
+        function createBots() {
+            const colors = [0xff0000, 0x00ff00, 0xff00ff];
+            const startPositions = [5, 10, 15];
+            
+            for (let i = 0; i < 3; i++) {
+                const carGroup = new THREE.Group();
+                
+                // Car body
+                const bodyGeometry = new THREE.BoxGeometry(4, 1, 2);
+                const bodyMaterial = new THREE.MeshLambertMaterial({ color: colors[i] });
+                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                body.position.y = 0.5;
+                body.castShadow = true;
+                carGroup.add(body);
+                
+                // Car roof
+                const roofGeometry = new THREE.BoxGeometry(2, 0.8, 1.5);
+                const roofMaterial = new THREE.MeshLambertMaterial({ color: colors[i] });
+                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof.position.set(0, 1.2, 0);
+                carGroup.add(roof);
+                
+                // Wheels
+                const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 8);
+                const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 });
+                
+                const wheels = [];
+                const wheelPositions = [
+                    [-1.5, 0.4, -1.2], [1.5, 0.4, -1.2],
+                    [-1.5, 0.4, 1.2], [1.5, 0.4, 1.2]
+                ];
+                
+                wheelPositions.forEach(pos => {
+                    const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                    wheel.position.set(...pos);
+                    wheel.rotation.z = Math.PI / 2;
+                    carGroup.add(wheel);
+                    wheels.push(wheel);
+                });
+                
+                const startIndex = startPositions[i];
+                carGroup.position.set(track[startIndex].x, 1, track[startIndex].z);
+                carGroup.rotation.y = track[startIndex].angle + Math.PI / 2;
+                
+                carGroup.userData = {
+                    speed: 0,
+                    maxSpeed: 0.6 + Math.random() * 0.2,
+                    acceleration: 0.015 + Math.random() * 0.01,
+                    friction: 0.95,
+                    trackIndex: startIndex,
+                    lap: 1,
+                    aiOffset: (Math.random() - 0.5) * 4,
+                    wheels: wheels
+                };
+                
+                scene.add(carGroup);
+                bots.push(carGroup);
+            }
+        }
+        
+        function createCheckpoints() {
+            const checkpointIndices = [0, 16, 32, 48];
+            checkpointIndices.forEach((index, i) => {
+                const checkpoint = {
+                    position: new THREE.Vector3(track[index].x, 1, track[index].z),
+                    index: i,
+                    passed: false
+                };
+                checkpoints.push(checkpoint);
+                
+                // Visual checkpoint (only show finish line)
+                if (i === 0) {
+                    const geometry = new THREE.RingGeometry(2, 8, 8);
+                    const material = new THREE.MeshBasicMaterial({ 
+                        color: 0xffff00, 
+                        transparent: true, 
+                        opacity: 0.5,
+                        side: THREE.DoubleSide
+                    });
+                    const ring = new THREE.Mesh(geometry, material);
+                    ring.position.copy(checkpoint.position);
+                    ring.rotation.x = -Math.PI / 2;
+                    scene.add(ring);
+                }
+            });
+        }
+        
+        function setupControls() {
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'KeyC') {
+                    gameState.cameraMode = (gameState.cameraMode + 1) % 3;
+                }
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        
+        function updatePlayer() {
+            if (!gameState.gameRunning) return;
+            
+            const userData = player.userData;
+            let acceleration = 0;
+            let turning = 0;
+            
+            // Handle input
+            if (keys['KeyW'] || keys['ArrowUp']) acceleration = userData.acceleration;
+            if (keys['KeyS'] || keys['ArrowDown']) acceleration = -userData.acceleration * 0.5;
+            if (keys['KeyA'] || keys['ArrowLeft']) turning = 0.03;
+            if (keys['KeyD'] || keys['ArrowRight']) turning = -0.03;
+            if (keys['Space']) userData.speed *= 0.9; // Brake
+            
+            // Update speed
+            userData.speed += acceleration;
+            userData.speed *= userData.friction;
+            userData.speed = Math.max(-userData.maxSpeed * 0.5, Math.min(userData.maxSpeed, userData.speed));
+            
+            // Update rotation
+            if (Math.abs(userData.speed) > 0.1) {
+                player.rotation.y += turning * Math.abs(userData.speed);
+            }
+            
+            // Update position
+            const forward = new THREE.Vector3(0, 0, 1);
+            forward.applyQuaternion(player.quaternion);
+            player.position.add(forward.multiplyScalar(userData.speed));
+            
+            // Wheel animation
+            userData.wheels.forEach(wheel => {
+                wheel.rotation.x += userData.speed * 2;
+            });
+            
+            playerSpeed = Math.abs(userData.speed) * 100;
+            
+            // Check collision with track boundaries
+            const playerPos = player.position;
+            const distanceFromCenter = Math.sqrt(playerPos.x * playerPos.x + playerPos.z * playerPos.z);
+            if (distanceFromCenter > 60 || distanceFromCenter < 20) {
+                userData.speed *= 0.5; // Slow down when hitting barriers
+            }
+            
+            // Check checkpoints
+            checkCheckpoints(player);
+        }
+        
+        function updateBots() {
+            if (!gameState.gameRunning) return;
+            
+            bots.forEach(bot => {
+                const userData = bot.userData;
+                
+                // AI navigation
+                const currentTarget = track[userData.trackIndex];
+                const nextIndex = (userData.trackIndex + 1) % track.length;
+                const nextTarget = track[nextIndex];
+                
+                // Calculate direction to target
+                const targetPos = new THREE.Vector3(
+                    nextTarget.x + userData.aiOffset, 
+                    1, 
+                    nextTarget.z
+                );
+                const direction = targetPos.clone().sub(bot.position).normalize();
+                
+                // Update bot rotation to face target
+                const targetAngle = Math.atan2(direction.x, direction.z);
+                bot.rotation.y = targetAngle;
+                
+                // Update speed
+                userData.speed += userData.acceleration;
+                userData.speed *= userData.friction;
+                userData.speed = Math.min(userData.maxSpeed, userData.speed);
+                
+                // Move bot
+                bot.position.add(direction.multiplyScalar(userData.speed));
+                
+                // Wheel animation
+                userData.wheels.forEach(wheel => {
+                    wheel.rotation.x += userData.speed * 2;
+                });
+                
+                // Check if reached current waypoint
+                const distance = bot.position.distanceTo(new THREE.Vector3(currentTarget.x, 1, currentTarget.z));
+                if (distance < 8) {
+                    userData.trackIndex = nextIndex;
+                }
+                
+                // Check checkpoints
+                checkCheckpoints(bot);
+            });
+        }
+        
+        function checkCheckpoints(car) {
+            const userData = car.userData;
+            
+            // Only check finish line (checkpoint 0) for lap completion
+            const finishLine = checkpoints[0];
+            const distance = car.position.distanceTo(finishLine.position);
+            
+            if (distance < 8) {
+                // Only count lap if we've made significant progress around track
+                if (userData.trackIndex > 32 || userData.trackIndex < 5) {
+                    // Check if we haven't just crossed this checkpoint
+                    const currentTime = Date.now();
+                    if (!userData.lastCheckpointTime || currentTime - userData.lastCheckpointTime > 10000) {
+                        userData.lastCheckpointTime = currentTime;
+                        
+                        if (userData.lap < 4) {
+                            userData.lap++;
+                            if (car === player) {
+                                gameState.lap = userData.lap;
+                                if (userData.lap > 3) {
+                                    endGame();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function updateCamera() {
+            switch (gameState.cameraMode) {
+                case 0: // Follow camera
+                    const followDistance = 15;
+                    const followHeight = 8;
+                    const cameraPosition = player.position.clone();
+                    const forward = new THREE.Vector3(0, 0, 1);
+                    forward.applyQuaternion(player.quaternion);
+                    cameraPosition.sub(forward.multiplyScalar(followDistance));
+                    cameraPosition.y += followHeight;
+                    camera.position.lerp(cameraPosition, 0.1);
+                    camera.lookAt(player.position);
+                    break;
+                    
+                case 1: // First person
+                    camera.position.copy(player.position);
+                    camera.position.y += 2;
+                    camera.rotation.copy(player.rotation);
+                    break;
+                    
+                case 2: // Top down
+                    camera.position.set(player.position.x, 50, player.position.z);
+                    camera.lookAt(player.position);
+                    break;
+            }
+        }
+        
+        function updateUI() {
+            // Calculate position
+            const allCars = [player, ...bots];
+            allCars.sort((a, b) => {
+                if (a.userData.lap !== b.userData.lap) {
+                    return b.userData.lap - a.userData.lap;
+                }
+                // If same lap, sort by track progress (simplified)
+                return b.userData.trackIndex - a.userData.trackIndex;
+            });
+            
+            gameState.position = allCars.indexOf(player) + 1;
+            
+            // Update UI elements
+            document.getElementById('lap').textContent = gameState.lap;
+            document.getElementById('position').textContent = gameState.position;
+            document.getElementById('speed').textContent = Math.round(playerSpeed);
+            
+            const elapsed = (Date.now() - gameState.startTime) / 1000;
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = Math.floor(elapsed % 60);
+            document.getElementById('time').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function endGame() {
+            gameState.gameRunning = false;
+            const gameOverDiv = document.getElementById('gameOver');
+            const title = document.getElementById('gameOverTitle');
+            const text = document.getElementById('gameOverText');
+            
+            if (gameState.position === 1) {
+                title.textContent = 'Victory!';
+                text.textContent = 'Congratulations! You won the race!';
+            } else {
+                title.textContent = 'Race Finished!';
+                text.textContent = `You finished in position ${gameState.position} out of 4.`;
+            }
+            
+            gameOverDiv.style.display = 'block';
+        }
+        
+        function restartGame() {
+            // Reset game state
+            gameState = {
+                lap: 1,
+                position: 1,
+                startTime: Date.now(),
+                gameRunning: true,
+                cameraMode: 0
+            };
+            
+            // Reset player
+            player.position.set(track[0].x, 1, track[0].z);
+            player.rotation.y = track[0].angle + Math.PI / 2;
+            player.userData.speed = 0;
+            player.userData.lap = 1;
+            player.userData.trackIndex = 0;
+            
+            // Reset bots
+            const startPositions = [5, 10, 15];
+            bots.forEach((bot, i) => {
+                const startIndex = startPositions[i];
+                bot.position.set(track[startIndex].x, 1, track[startIndex].z);
+                bot.rotation.y = track[startIndex].angle + Math.PI / 2;
+                bot.userData.speed = 0;
+                bot.userData.lap = 1;
+                bot.userData.trackIndex = startIndex;
+            });
+            
+            document.getElementById('gameOver').style.display = 'none';
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            updatePlayer();
+            updateBots();
+            updateCamera();
+            updateUI();
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
