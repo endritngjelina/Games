@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Physics Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #gameCanvas {
+            display: block;
+            cursor: grab;
+        }
+
+        #gameCanvas:active {
+            cursor: grabbing;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        #speedometer {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 200;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div class="loading" id="loadingText">
+            <div class="spinner"></div>
+            Loading Physics Engine...
+            <div style="font-size: 14px; margin-top: 10px;">Please wait...</div>
+        </div>
+        
+        <div id="ui" style="display: none;">
+            <div><strong>🏎️ Car Physics Playground</strong></div>
+            <div>FPS: <span id="fps">60</span></div>
+            <div>Position: (<span id="posX">0</span>, <span id="posZ">0</span>)</div>
+        </div>
+
+        <div id="controls" style="display: none;">
+            <div><strong>Controls:</strong></div>
+            <div>🔼 W/↑ - Accelerate</div>
+            <div>🔽 S/↓ - Brake/Reverse</div>
+            <div>◀️ A/← - Turn Left</div>
+            <div>▶️ D/→ - Turn Right</div>
+            <div>🖱️ Mouse Drag - Look Around</div>
+            <div>📷 R - Reset Car</div>
+        </div>
+
+        <div id="speedometer" style="display: none;">
+            <div>SPEED</div>
+            <div id="speed">0</div>
+            <div style="font-size: 14px;">km/h</div>
+        </div>
+    </div>
+
+    <script>
+        // Simple physics implementation for better compatibility
+        class CarPhysicsPlayground {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.car = null;
+                this.wheels = [];
+                this.terrain = null;
+                this.keys = {};
+                this.cameraAngle = { x: 0, y: 0 };
+                this.lastTime = 0;
+                this.frameCount = 0;
+                this.lastFpsUpdate = 0;
+                
+                // Car physics properties
+                this.carPosition = { x: 0, y: 5, z: 0 };
+                this.carRotation = { x: 0, y: 0, z: 0 };
+                this.carVelocity = { x: 0, y: 0, z: 0 };
+                this.carAngularVelocity = { x: 0, y: 0, z: 0 };
+                this.wheelRotation = 0;
+                this.steerAngle = 0;
+                
+                this.loadThreeJS();
+            }
+
+            loadThreeJS() {
+                // Load Three.js
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+                script.onload = () => {
+                    console.log('Three.js loaded successfully');
+                    this.init();
+                };
+                script.onerror = () => {
+                    console.error('Failed to load Three.js');
+                    document.getElementById('loadingText').innerHTML = 
+                        '<div style="color: #ff6b6b;">Failed to load Three.js<br><small>Please check your internet connection</small></div>';
+                };
+                document.head.appendChild(script);
+            }
+
+            init() {
+                try {
+                    this.setupScene();
+                    this.createTerrain();
+                    this.createCar();
+                    this.setupLighting();
+                    this.setupControls();
+                    this.setupEventListeners();
+                    this.animate();
+                    
+                    // Hide loading and show UI
+                    document.getElementById('loadingText').style.display = 'none';
+                    document.getElementById('ui').style.display = 'block';
+                    document.getElementById('controls').style.display = 'block';
+                    document.getElementById('speedometer').style.display = 'block';
+                    
+                    console.log('Game initialized successfully');
+                } catch (error) {
+                    console.error('Failed to initialize:', error);
+                    document.getElementById('loadingText').innerHTML = 
+                        '<div style="color: #ff6b6b;">Initialization failed<br><small>' + error.message + '</small></div>';
+                }
+            }
+
+            setupScene() {
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x87CEEB);
+                this.scene.fog = new THREE.Fog(0x87CEEB, 10, 1000);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+                this.camera.position.set(0, 15, 20);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ 
+                    canvas: document.getElementById('gameCanvas'),
+                    antialias: true 
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            }
+
+            createTerrain() {
+                // Create a hilly terrain using plane geometry with vertex manipulation
+                const size = 200;
+                const segments = 100;
+                const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+                
+                // Manipulate vertices to create hills
+                const vertices = geometry.attributes.position.array;
+                for (let i = 0; i < vertices.length; i += 3) {
+                    const x = vertices[i];
+                    const z = vertices[i + 1];
+                    const height = Math.sin(x * 0.02) * Math.cos(z * 0.02) * 8 + 
+                                 Math.sin(x * 0.01) * Math.cos(z * 0.01) * 15 +
+                                 Math.random() * 2;
+                    vertices[i + 2] = height;
+                }
+                
+                geometry.computeVertexNormals();
+                
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: 0x4a7c59,
+                    wireframe: false
+                });
+                
+                this.terrain = new THREE.Mesh(geometry, material);
+                this.terrain.rotation.x = -Math.PI / 2;
+                this.terrain.position.y = -10;
+                this.terrain.receiveShadow = true;
+                this.scene.add(this.terrain);
+
+                // Add some decorative rocks
+                for (let i = 0; i < 30; i++) {
+                    this.createRock();
+                }
+            }
+
+            createRock() {
+                const size = Math.random() * 3 + 1;
+                const geometry = new THREE.SphereGeometry(size, 8, 6);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: new THREE.Color().setHSL(0, 0, Math.random() * 0.3 + 0.2)
+                });
+                const rock = new THREE.Mesh(geometry, material);
+                
+                rock.position.set(
+                    (Math.random() - 0.5) * 180,
+                    this.getTerrainHeight((Math.random() - 0.5) * 180, (Math.random() - 0.5) * 180) + size,
+                    (Math.random() - 0.5) * 180
+                );
+                rock.castShadow = true;
+                this.scene.add(rock);
+            }
+
+            getTerrainHeight(x, z) {
+                // Simple terrain height calculation
+                return Math.sin(x * 0.02) * Math.cos(z * 0.02) * 8 + 
+                       Math.sin(x * 0.01) * Math.cos(z * 0.01) * 15 - 10;
+            }
+
+            createCar() {
+                // Car group
+                this.car = new THREE.Group();
+                
+                // Car body
+                const bodyGeometry = new THREE.BoxGeometry(4, 1.5, 8);
+                const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xff4444 });
+                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                body.castShadow = true;
+                this.car.add(body);
+
+                // Car cabin
+                const cabinGeometry = new THREE.BoxGeometry(3, 1.2, 4);
+                const cabinMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+                const cabin = new THREE.Mesh(cabinGeometry, cabinMaterial);
+                cabin.position.set(0, 1.35, -0.5);
+                cabin.castShadow = true;
+                this.car.add(cabin);
+
+                // Create wheels
+                const wheelPositions = [
+                    { x: 1.8, y: -0.5, z: 2.8 },   // front left
+                    { x: -1.8, y: -0.5, z: 2.8 },  // front right
+                    { x: 1.8, y: -0.5, z: -2.8 },  // rear left
+                    { x: -1.8, y: -0.5, z: -2.8 }  // rear right
+                ];
+
+                wheelPositions.forEach((pos, i) => {
+                    const wheelGroup = new THREE.Group();
+                    
+                    // Wheel
+                    const wheelGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.6, 12);
+                    const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 });
+                    const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                    wheel.rotation.z = Math.PI / 2;
+                    wheel.castShadow = true;
+                    wheelGroup.add(wheel);
+                    
+                    // Rim
+                    const rimGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.65, 8);
+                    const rimMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
+                    const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+                    rim.rotation.z = Math.PI / 2;
+                    wheelGroup.add(rim);
+                    
+                    wheelGroup.position.copy(pos);
+                    this.wheels.push(wheelGroup);
+                    this.car.add(wheelGroup);
+                });
+
+                this.car.position.set(this.carPosition.x, this.carPosition.y, this.carPosition.z);
+                this.scene.add(this.car);
+            }
+
+            setupLighting() {
+                // Ambient light
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+
+                // Directional light (sun)
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                directionalLight.position.set(50, 100, 50);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.1;
+                directionalLight.shadow.camera.far = 500;
+                directionalLight.shadow.camera.left = -100;
+                directionalLight.shadow.camera.right = 100;
+                directionalLight.shadow.camera.top = 100;
+                directionalLight.shadow.camera.bottom = -100;
+                this.scene.add(directionalLight);
+            }
+
+            setupControls() {
+                this.controls = {
+                    forward: false,
+                    backward: false,
+                    left: false,
+                    right: false
+                };
+            }
+
+            setupEventListeners() {
+                // Keyboard events
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    this.updateControls();
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                    this.updateControls();
+                    
+                    // Reset car
+                    if (e.code === 'KeyR') {
+                        this.resetCar();
+                    }
+                });
+
+                // Mouse events for camera
+                let mouseDown = false;
+                window.addEventListener('mousedown', (e) => {
+                    mouseDown = true;
+                });
+
+                window.addEventListener('mouseup', (e) => {
+                    mouseDown = false;
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (mouseDown) {
+                        this.cameraAngle.x += e.movementY * 0.01;
+                        this.cameraAngle.y += e.movementX * 0.01;
+                        this.cameraAngle.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, this.cameraAngle.x));
+                    }
+                });
+
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+
+            updateControls() {
+                this.controls.forward = this.keys['KeyW'] || this.keys['ArrowUp'];
+                this.controls.backward = this.keys['KeyS'] || this.keys['ArrowDown'];
+                this.controls.left = this.keys['KeyA'] || this.keys['ArrowLeft'];
+                this.controls.right = this.keys['KeyD'] || this.keys['ArrowRight'];
+            }
+
+            resetCar() {
+                this.carPosition = { x: 0, y: 10, z: 0 };
+                this.carRotation = { x: 0, y: 0, z: 0 };
+                this.carVelocity = { x: 0, y: 0, z: 0 };
+                this.carAngularVelocity = { x: 0, y: 0, z: 0 };
+                this.steerAngle = 0;
+                this.wheelRotation = 0;
+            }
+
+            updatePhysics(deltaTime) {
+                const acceleration = 25;
+                const maxSpeed = 50;
+                const friction = 0.95;
+                const turnSpeed = 2;
+                const gravity = -30;
+
+                // Handle input
+                if (this.controls.forward) {
+                    const forwardX = Math.sin(this.carRotation.y) * acceleration * deltaTime;
+                    const forwardZ = Math.cos(this.carRotation.y) * acceleration * deltaTime;
+                    this.carVelocity.x += forwardX;
+                    this.carVelocity.z += forwardZ;
+                }
+
+                if (this.controls.backward) {
+                    const backwardX = -Math.sin(this.carRotation.y) * acceleration * 0.7 * deltaTime;
+                    const backwardZ = -Math.cos(this.carRotation.y) * acceleration * 0.7 * deltaTime;
+                    this.carVelocity.x += backwardX;
+                    this.carVelocity.z += backwardZ;
+                }
+
+                // Steering (only when moving)
+                const speed = Math.sqrt(this.carVelocity.x * this.carVelocity.x + this.carVelocity.z * this.carVelocity.z);
+                if (speed > 0.5) {
+                    if (this.controls.left) {
+                        this.carAngularVelocity.y += turnSpeed * deltaTime * (speed / maxSpeed);
+                    }
+                    if (this.controls.right) {
+                        this.carAngularVelocity.y -= turnSpeed * deltaTime * (speed / maxSpeed);
+                    }
+                }
+
+                // Apply friction
+                this.carVelocity.x *= friction;
+                this.carVelocity.z *= friction;
+                this.carAngularVelocity.y *= 0.9;
+
+                // Apply gravity
+                this.carVelocity.y += gravity * deltaTime;
+
+                // Update position
+                this.carPosition.x += this.carVelocity.x * deltaTime;
+                this.carPosition.y += this.carVelocity.y * deltaTime;
+                this.carPosition.z += this.carVelocity.z * deltaTime;
+
+                // Update rotation
+                this.carRotation.y += this.carAngularVelocity.y * deltaTime;
+
+                // Terrain collision (simple)
+                const terrainY = this.getTerrainHeight(this.carPosition.x, this.carPosition.z);
+                if (this.carPosition.y < terrainY + 1) {
+                    this.carPosition.y = terrainY + 1;
+                    this.carVelocity.y = Math.max(0, this.carVelocity.y);
+                }
+
+                // Update wheel rotation
+                this.wheelRotation += speed * deltaTime * 2;
+
+                // Update steering angle for front wheels
+                let targetSteer = 0;
+                if (this.controls.left) targetSteer = 0.3;
+                if (this.controls.right) targetSteer = -0.3;
+                this.steerAngle += (targetSteer - this.steerAngle) * 5 * deltaTime;
+            }
+
+            updateVisuals() {
+                // Update car position and rotation
+                this.car.position.set(this.carPosition.x, this.carPosition.y, this.carPosition.z);
+                this.car.rotation.set(this.carRotation.x, this.carRotation.y, this.carRotation.z);
+
+                // Update wheels
+                this.wheels.forEach((wheel, i) => {
+                    // Rotate wheels based on movement
+                    wheel.children[0].rotation.x = this.wheelRotation;
+                    wheel.children[1].rotation.x = this.wheelRotation;
+                    
+                    // Front wheel steering
+                    if (i < 2) {
+                        wheel.rotation.y = this.steerAngle;
+                    }
+                });
+            }
+
+            updateCamera() {
+                const cameraDistance = 20;
+                const cameraHeight = 10;
+                
+                const cameraX = this.carPosition.x - Math.sin(this.carRotation.y + this.cameraAngle.y) * cameraDistance;
+                const cameraZ = this.carPosition.z - Math.cos(this.carRotation.y + this.cameraAngle.y) * cameraDistance;
+                const cameraY = this.carPosition.y + cameraHeight + this.cameraAngle.x * 8;
+                
+                this.camera.position.set(cameraX, cameraY, cameraZ);
+                this.camera.lookAt(this.carPosition.x, this.carPosition.y + 2, this.carPosition.z);
+            }
+
+            updateUI() {
+                // Update position
+                document.getElementById('posX').textContent = this.carPosition.x.toFixed(1);
+                document.getElementById('posZ').textContent = this.carPosition.z.toFixed(1);
+                
+                // Update speed
+                const speed = Math.sqrt(this.carVelocity.x * this.carVelocity.x + this.carVelocity.z * this.carVelocity.z) * 3.6;
+                document.getElementById('speed').textContent = Math.round(speed);
+                
+                // Update FPS
+                this.frameCount++;
+                const currentTime = Date.now();
+                if (currentTime - this.lastFpsUpdate > 1000) {
+                    document.getElementById('fps').textContent = Math.round(this.frameCount * 1000 / (currentTime - this.lastFpsUpdate));
+                    this.frameCount = 0;
+                    this.lastFpsUpdate = currentTime;
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                const currentTime = Date.now();
+                const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 1/30); // Cap delta time
+                this.lastTime = currentTime;
+                
+                // Update physics
+                this.updatePhysics(deltaTime);
+                
+                // Update visuals
+                this.updateVisuals();
+                
+                // Update camera
+                this.updateCamera();
+                
+                // Update UI
+                this.updateUI();
+                
+                // Render
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize the game
+        window.addEventListener('load', () => {
+            new CarPhysicsPlayground();
+        });
+    </script>
+</body>
+</html>
