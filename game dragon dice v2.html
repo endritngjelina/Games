@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dragon's Dice Casino - Premium Edition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: float 6s infinite linear;
+            opacity: 0.7;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .casino-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.7);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            margin-bottom: 10px;
+            font-weight: 900;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+            to { text-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.3); }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #c0c0c0;
+            margin-bottom: 15px;
+        }
+
+        .streak-display {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+
+        .main-game {
+            background: rgba(0,0,0,0.6);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .sidebar {
+            background: rgba(0,0,0,0.6);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 50px 0;
+            perspective: 1000px;
+        }
+
+        .dice {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, #ffffff, #f0f0f0);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: all 0.3s ease;
+            border: 3px solid #ffd700;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .dice::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b, #54a0ff, #ffd700);
+            border-radius: 20px;
+            z-index: -1;
+            filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .dice:hover::before {
+            opacity: 0.7;
+        }
+
+        .dice.rolling {
+            animation: roll3d 1.5s ease-in-out;
+            transform-style: preserve-3d;
+        }
+
+        @keyframes roll3d {
+            0% { transform: rotateX(0) rotateY(0) rotateZ(0); }
+            25% { transform: rotateX(90deg) rotateY(180deg) rotateZ(90deg) scale(1.1); }
+            50% { transform: rotateX(180deg) rotateY(360deg) rotateZ(180deg) scale(1.2); }
+            75% { transform: rotateX(270deg) rotateY(540deg) rotateZ(270deg) scale(1.1); }
+            100% { transform: rotateX(360deg) rotateY(720deg) rotateZ(360deg); }
+        }
+
+        .betting-section {
+            margin-bottom: 30px;
+        }
+
+        .betting-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .betting-title h3 {
+            color: #ffd700;
+            font-size: 1.3rem;
+        }
+
+        .auto-bet-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: #333;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #ffd700;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(25px);
+        }
+
+        .bet-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .bet-button {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 15px 12px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            text-align: center;
+            font-family: 'Orbitron', monospace;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bet-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .bet-button:hover::before {
+            left: 100%;
+        }
+
+        .bet-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border-color: #ffd700;
+        }
+
+        .bet-button.active {
+            background: linear-gradient(45deg, #ffd700, #ffb347);
+            color: #333;
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .bet-multiplier {
+            display: block;
+            font-size: 0.7rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .bet-controls {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            margin-bottom: 25px;
+            align-items: end;
+        }
+
+        .bet-amount-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bet-input {
+            padding: 12px 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 1.1rem;
+            background: rgba(0,0,0,0.3);
+            color: white;
+            backdrop-filter: blur(10px);
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+            transition: border-color 0.3s ease;
+        }
+
+        .bet-input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .bet-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .quick-bet {
+            display: flex;
+            gap: 8px;
+        }
+
+        .quick-bet button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .quick-bet button:hover {
+            background: rgba(255,215,0,0.2);
+            border-color: #ffd700;
+        }
+
+        .roll-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .roll-button {
+            flex: 1;
+            background: linear-gradient(45deg, #ffd700, #ffb347);
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .roll-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .roll-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .max-bet-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            padding: 18px 25px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .max-bet-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .stats {
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .stats h3 {
+            color: #ffd700;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-label {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .stat-value.positive {
+            color: #00ff88;
+        }
+
+        .stat-value.negative {
+            color: #ff4757;
+        }
+
+        .result-display {
+            text-align: center;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: all 0.5s ease;
+            transform: scale(0);
+        }
+
+        .result-display.show {
+            transform: scale(1);
+        }
+
+        .result-win {
+            background: linear-gradient(45deg, #00ff88, #00d2d3);
+            color: white;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+            animation: celebrate 0.6s ease-out;
+        }
+
+        .result-lose {
+            background: linear-gradient(45deg, #ff4757, #ff3742);
+            color: white;
+            box-shadow: 0 0 30px rgba(255, 71, 87, 0.3);
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .achievements {
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .achievement {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .achievement.unlocked {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .achievement-icon {
+            font-size: 1.2rem;
+        }
+
+        .achievement-text {
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        .achievement.unlocked .achievement-text {
+            color: #ffd700;
+        }
+
+        .rules {
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .rules h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .rules ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .rules li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .rules li::before {
+            content: "🎲";
+            position: absolute;
+            left: 0;
+        }
+
+        .sound-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .sound-toggle:hover {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: #ffd700;
+        }
+
+        .jackpot-meter {
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .jackpot-amount {
+            font-size: 1.5rem;
+            color: #ffd700;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .dice {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+            
+            .bet-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .roll-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Sound toggle -->
+    <div class="sound-toggle" id="soundToggle">
+        <i class="fas fa-volume-up" id="soundIcon"></i>
+    </div>
+
+    <div class="casino-container">
+        <div class="header">
+            <h1>🐉 DRAGON'S DICE CASINO 🐉</h1>
+            <p class="subtitle">Premium Gaming Experience</p>
+            <div class="streak-display" id="streakDisplay">
+                🔥 Current Streak: 0 wins
+            </div>
+        </div>
+
+        <div class="game-board">
+            <div class="main-game">
+                <div class="dice-container">
+                    <div class="dice" id="dice1">🎲</div>
+                    <div class="dice" id="dice2">🎲</div>
+                    <div class="dice" id="dice3">🎲</div>
+                </div>
+
+                <div id="result" class="result-display"></div>
+
+                <div class="betting-section">
+                    <div class="betting-title">
+                        <h3>🎯 Choose Your Destiny</h3>
+                        <div class="auto-bet-toggle">
+                            <span>Auto-Bet</span>
+                            <div class="toggle-switch" id="autoBetToggle"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="bet-options">
+                        <button class="bet-button" data-bet="low">
+                            Low Sum (3-10)
+                            <span class="bet-multiplier">2.0x</span>
+                        </button>
+                        <button class="bet-button" data-bet="high">
+                            High Sum (11-18)
+                            <span class="bet-multiplier">2.0x</span>
+                        </button>
+                        <button class="bet-button" data-bet="triple">
+                            Triple Match
+                            <span class="bet-multiplier">30x</span>
+                        </button>
+                        <button class="bet-button" data-bet="even">
+                            Even Sum
+                            <span class="bet-multiplier">2.0x</span>
+                        </button>
+                        <button class="bet-button" data-bet="odd">
+                            Odd Sum
+                            <span class="bet-multiplier">2.0x</span>
+                        </button>
+                        <button class="bet-button" data-bet="exact" data-value="11">
+                            Lucky 11
+                            <span class="bet-multiplier">15x</span>
+                        </button>
+                        <button class="bet-button" data-bet="double">
+                            Double Match
+                            <span class="bet-multiplier">5x</span>
+                        </button>
+                        <button class="bet-button" data-bet="sequential">
+                            Sequential
+                            <span class="bet-multiplier">8x</span>
+                        </button>
+                    </div>
+
+                    <div class="bet-controls">
+                        <div class="bet-amount-section">
+                            <input type="number" class="bet-input" id="betAmount" placeholder="Enter bet amount..." min="1" max="10000" value="10">
+                            <div class="quick-bet">
+                                <button onclick="setBetAmount(10)">$10</button>
+                                <button onclick="setBetAmount(25)">$25</button>
+                                <button onclick="setBetAmount(50)">$50</button>
+                                <button onclick="setBetAmount(100)">$100</button>
+                                <button onclick="setBetAmount(500)">$500</button>
+                            </div>
+                        </div>
+                        <div class="roll-controls">
+                            <button class="roll-button" id="rollButton" onclick="rollDice()">
+                                🎲 ROLL DICE 🎲
+                            </button>
+                            <button class="max-bet-button" onclick="maxBet()">
+                                MAX BET
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="jackpot-meter">
+                    <div>💎 JACKPOT 💎</div>
+                    <div class="jackpot-amount" id="jackpotAmount">$50,000</div>
+                </div>
+
+                <div class="stats">
+                    <h3>📊 Player Statistics</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">💰 Balance:</span>
+                        <span class="stat-value" id="balance">$1000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🎯 Current Bet:</span>
+                        <span class="stat-value" id="currentBet">$0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🎮 Games Played:</span>
+                        <span class="stat-value" id="gamesPlayed">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🏆 Games Won:</span>
+                        <span class="stat-value" id="gamesWon">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">📈 Win Rate:</span>
+                        <span class="stat-value" id="winRate">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">💵 Net Profit:</span>
+                        <span class="stat-value" id="netProfit">$0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">🔥 Best Streak:</span>
+                        <span class="stat-value" id="bestStreak">0</span>
+                    </div>
+                </div>
+
+                <div class="achievements">
+                    <h3>🏅 Achievements</h3>
+                    <div class="achievement" id="achievement1">
+                        <span class="achievement-icon">🎯</span>
+                        <span class="achievement-text">First Win</span>
+                    </div>
+                    <div class="achievement" id="achievement2">
+                        <span class="achievement-icon">🔥</span>
+                        <span class="achievement-text">5 Win Streak</span>
+                    </div>
+                    <div class="achievement" id="achievement3">
+                        <span class="achievement-icon">💎</span>
+                        <span class="achievement-text">Triple Winner</span>
+                    </div>
+                    <div class="achievement" id="achievement4">
+                        <span class="achievement-icon">💰</span>
+                        <span class="achievement-text">Big Spender</span>
+                    </div>
+                </div>
+
+                <div class="rules">
+                    <h3>🎮 Game Rules</h3>
+                    <ul>
+                        <li>Choose your bet type and amount</li>
+                        <li>Roll three dice to determine outcome</li>
+                        <li>Win based on your prediction!</li>
+                        <li>Triple Match: All three dice same</li>
+                        <li>Double Match: Two dice same</li>
+                        <li>Sequential: 1-2-3, 2-3-4, 3-4-5, 4-5-6</li>
+                        <li>Auto-bet continues with same settings</li>
+                        <li>Jackpot triggers on triple 6s!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            balance: 1000,
+            currentBet: 0,
+            betType: null,
+            exactValue: null,
+            gamesPlayed: 0,
+            gamesWon: 0,
+            totalWinnings: 0,
+            totalLosses: 0,
+            currentStreak: 0,
+            bestStreak: 0,
+            isRolling: false,
+            autoBet: false,
+            soundEnabled: true,
+            achievements: {
+                firstWin: false,
+                fiveStreak: false,
+                tripleWin: false,
+                bigSpender: false
+            }
+        };
+
+        const diceValues = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+        const sounds = {
+            roll: () => playSound(200, 0.1),
+            win: () => playSound(400, 0.2),
+            lose: () => playSound(150, 0.1),
+            jackpot: () => playJackpotSound()
+        };
+
+        // Initialize particles
+        function createParticles() {
+            const particles = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 3 + 4) + 's';
+                particles.appendChild(particle);
+            }
+        }
+
+        // Sound system
+        function playSound(frequency, duration) {
+            if (!gameState.soundEnabled) return;
+            
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playJackpotSound() {
+            if (!gameState.soundEnabled) return;
+            
+            const frequencies = [523, 659, 784, 1047];
+            frequencies.forEach((freq, index) => {
+                setTimeout(() => playSound(freq, 0.3), index * 200);
+            });
+        }
+
+        function updateDisplay() {
+            document.getElementById('balance').textContent = `${gameState.balance.toLocaleString()}`;
+            document.getElementById('currentBet').textContent = `${gameState.currentBet.toLocaleString()}`;
+            document.getElementById('gamesPlayed').textContent = gameState.gamesPlayed;
+            document.getElementById('gamesWon').textContent = gameState.gamesWon;
+            
+            const winRate = gameState.gamesPlayed > 0 ? 
+                Math.round((gameState.gamesWon / gameState.gamesPlayed) * 100) : 0;
+            document.getElementById('winRate').textContent = `${winRate}%`;
+            
+            const netProfit = gameState.totalWinnings - gameState.totalLosses;
+            const netProfitElement = document.getElementById('netProfit');
+            netProfitElement.textContent = `${netProfit.toLocaleString()}`;
+            netProfitElement.className = `stat-value ${netProfit >= 0 ? 'positive' : 'negative'}`;
+            
+            document.getElementById('bestStreak').textContent = gameState.bestStreak;
+            document.getElementById('streakDisplay').textContent = 
+                `🔥 Current Streak: ${gameState.currentStreak} wins`;
+            
+            // Update jackpot (grows with each game)
+            const jackpot = 50000 + (gameState.gamesPlayed * 100);
+            document.getElementById('jackpotAmount').textContent = `${jackpot.toLocaleString()}`;
+            
+            updateAchievements();
+        }
+
+        function updateAchievements() {
+            // First Win
+            if (gameState.gamesWon >= 1 && !gameState.achievements.firstWin) {
+                gameState.achievements.firstWin = true;
+                document.getElementById('achievement1').classList.add('unlocked');
+                showNotification('🎯 Achievement Unlocked: First Win!');
+            }
+            
+            // 5 Win Streak
+            if (gameState.currentStreak >= 5 && !gameState.achievements.fiveStreak) {
+                gameState.achievements.fiveStreak = true;
+                document.getElementById('achievement2').classList.add('unlocked');
+                showNotification('🔥 Achievement Unlocked: 5 Win Streak!');
+            }
+            
+            // Triple Winner
+            if (!gameState.achievements.tripleWin) {
+                // This will be set when player wins with triple
+            }
+            
+            // Big Spender
+            if (gameState.totalLosses >= 1000 && !gameState.achievements.bigSpender) {
+                gameState.achievements.bigSpender = true;
+                document.getElementById('achievement4').classList.add('unlocked');
+                showNotification('💰 Achievement Unlocked: Big Spender!');
+            }
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background: linear-gradient(45deg, #ffd700, #ffb347);
+                color: #333;
+                padding: 15px 20px;
+                border-radius: 10px;
+                font-weight: bold;
+                z-index: 1000;
+                animation: slideIn 0.5s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.5s ease-in forwards';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+
+        function setBetAmount(amount) {
+            document.getElementById('betAmount').value = amount;
+        }
+
+        function maxBet() {
+            document.getElementById('betAmount').value = gameState.balance;
+        }
+
+        // Event listeners
+        document.querySelectorAll('.bet-button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.bet-button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                gameState.betType = this.dataset.bet;
+                gameState.exactValue = this.dataset.value ? parseInt(this.dataset.value) : null;
+            });
+        });
+
+        document.getElementById('autoBetToggle').addEventListener('click', function() {
+            gameState.autoBet = !gameState.autoBet;
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('soundToggle').addEventListener('click', function() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            icon.className = gameState.soundEnabled ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+        });
+
+        function rollDice() {
+            if (gameState.isRolling) return;
+            
+            const betAmount = parseInt(document.getElementById('betAmount').value);
+            
+            if (!gameState.betType) {
+                alert('Please select a bet type first!');
+                return;
+            }
+            
+            if (!betAmount || betAmount <= 0) {
+                alert('Please enter a valid bet amount!');
+                return;
+            }
+            
+            if (betAmount > gameState.balance) {
+                alert('Insufficient balance!');
+                return;
+            }
+
+            gameState.isRolling = true;
+            gameState.currentBet = betAmount;
+            gameState.balance -= betAmount;
+            gameState.totalLosses += betAmount;
+            
+            document.getElementById('rollButton').disabled = true;
+            document.getElementById('result').classList.remove('show');
+            
+            const dice = [
+                document.getElementById('dice1'),
+                document.getElementById('dice2'),
+                document.getElementById('dice3')
+            ];
+            
+            dice.forEach(die => die.classList.add('rolling'));
+            sounds.roll();
+            
+            // Enhanced rolling animation
+            let rollCount = 0;
+            const rollInterval = setInterval(() => {
+                dice.forEach(die => {
+                    die.textContent = diceValues[Math.floor(Math.random() * 6)];
+                });
+                rollCount++;
+                
+                if (rollCount > 15) {
+                    clearInterval(rollInterval);
+                    finishRoll(dice);
+                }
+            }, 100);
+        }
+
+        function finishRoll(dice) {
+            const finalRolls = [
+                Math.floor(Math.random() * 6) + 1,
+                Math.floor(Math.random() * 6) + 1,
+                Math.floor(Math.random() * 6) + 1
+            ];
+            
+            dice.forEach((die, index) => {
+                die.textContent = diceValues[finalRolls[index] - 1];
+                die.classList.remove('rolling');
+            });
+            
+            const sum = finalRolls.reduce((a, b) => a + b, 0);
+            const isTriple = finalRolls[0] === finalRolls[1] && finalRolls[1] === finalRolls[2];
+            const isDouble = finalRolls[0] === finalRolls[1] || 
+                           finalRolls[1] === finalRolls[2] || 
+                           finalRolls[0] === finalRolls[2];
+            const isSequential = checkSequential(finalRolls);
+            const isJackpot = isTriple && finalRolls[0] === 6;
+            
+            let won = false;
+            let multiplier = 0;
+            let winType = '';
+            
+            switch (gameState.betType) {
+                case 'low':
+                    won = sum >= 3 && sum <= 10;
+                    multiplier = 2;
+                    winType = 'Low Sum';
+                    break;
+                case 'high':
+                    won = sum >= 11 && sum <= 18;
+                    multiplier = 2;
+                    winType = 'High Sum';
+                    break;
+                case 'even':
+                    won = sum % 2 === 0;
+                    multiplier = 2;
+                    winType = 'Even Sum';
+                    break;
+                case 'odd':
+                    won = sum % 2 === 1;
+                    multiplier = 2;
+                    winType = 'Odd Sum';
+                    break;
+                case 'triple':
+                    won = isTriple;
+                    multiplier = 30;
+                    winType = 'Triple Match';
+                    if (won && !gameState.achievements.tripleWin) {
+                        gameState.achievements.tripleWin = true;
+                        document.getElementById('achievement3').classList.add('unlocked');
+                        showNotification('💎 Achievement Unlocked: Triple Winner!');
+                    }
+                    break;
+                case 'double':
+                    won = isDouble && !isTriple;
+                    multiplier = 5;
+                    winType = 'Double Match';
+                    break;
+                case 'sequential':
+                    won = isSequential;
+                    multiplier = 8;
+                    winType = 'Sequential';
+                    break;
+                case 'exact':
+                    won = sum === gameState.exactValue;
+                    multiplier = 15;
+                    winType = `Exact ${gameState.exactValue}`;
+                    break;
+            }
+            
+            gameState.gamesPlayed++;
+            
+            const resultDiv = document.getElementById('result');
+            
+            if (won) {
+                let winnings = gameState.currentBet * multiplier;
+                
+                // Jackpot bonus
+                if (isJackpot) {
+                    const jackpotBonus = 50000 + (gameState.gamesPlayed * 100);
+                    winnings += jackpotBonus;
+                    sounds.jackpot();
+                    showNotification(`🎉 JACKPOT! +${jackpotBonus.toLocaleString()} Bonus!`);
+                } else {
+                    sounds.win();
+                }
+                
+                gameState.balance += winnings;
+                gameState.gamesWon++;
+                gameState.totalWinnings += winnings;
+                gameState.currentStreak++;
+                
+                if (gameState.currentStreak > gameState.bestStreak) {
+                    gameState.bestStreak = gameState.currentStreak;
+                }
+                
+                resultDiv.textContent = `🎉 ${winType.toUpperCase()} WIN! 🎉
+                Dice: ${finalRolls.join('-')} (Sum: ${sum})
+                Won: ${winnings.toLocaleString()}${isJackpot ? ' + JACKPOT!' : ''}`;
+                resultDiv.className = 'result-display result-win show';
+            } else {
+                sounds.lose();
+                gameState.currentStreak = 0;
+                
+                resultDiv.textContent = `💔 No luck this time!
+                Dice: ${finalRolls.join('-')} (Sum: ${sum})
+                Lost: ${gameState.currentBet.toLocaleString()}`;
+                resultDiv.className = 'result-display result-lose show';
+            }
+            
+            updateDisplay();
+            
+            gameState.isRolling = false;
+            gameState.currentBet = 0;
+            document.getElementById('rollButton').disabled = false;
+            
+            // Auto-bet functionality
+            if (gameState.autoBet && gameState.balance > 0) {
+                setTimeout(() => {
+                    if (gameState.autoBet && !gameState.isRolling) {
+                        rollDice();
+                    }
+                }, 2000);
+            }
+            
+            // Check for game over
+            if (gameState.balance <= 0) {
+                setTimeout(() => {
+                    if (confirm('Game Over! You\'re out of money. Would you like to reset and play again?')) {
+                        resetGame();
+                    }
+                }, 2000);
+            }
+        }
+
+        function checkSequential(rolls) {
+            const sorted = [...rolls].sort((a, b) => a - b);
+            return (sorted[0] === sorted[1] - 1 && sorted[1] === sorted[2] - 1);
+        }
+
+        function resetGame() {
+            gameState = {
+                balance: 1000,
+                currentBet: 0,
+                betType: null,
+                exactValue: null,
+                gamesPlayed: 0,
+                gamesWon: 0,
+                totalWinnings: 0,
+                totalLosses: 0,
+                currentStreak: 0,
+                bestStreak: 0,
+                isRolling: false,
+                autoBet: false,
+                soundEnabled: true,
+                achievements: {
+                    firstWin: false,
+                    fiveStreak: false,
+                    tripleWin: false,
+                    bigSpender: false
+                }
+            };
+            
+            document.querySelectorAll('.achievement').forEach(ach => ach.classList.remove('unlocked'));
+            document.querySelectorAll('.bet-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('autoBetToggle').classList.remove('active');
+            document.getElementById('result').classList.remove('show');
+            
+            updateDisplay();
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize game
+        createParticles();
+        updateDisplay();
+    </script>
+</body>
+</html>
