@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High Card Poker - Premium Casino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            font-family: 'Orbitron', monospace;
+        }
+        
+        .card {
+            width: 140px;
+            height: 200px;
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .card:hover {
+            transform: translateY(-10px) rotateY(5deg);
+            box-shadow: 0 16px 50px rgba(0,0,0,0.4);
+        }
+        
+        .card-back {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 4s ease infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-back::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shine 3s ease-in-out infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        @keyframes shine {
+            0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .card-suit {
+            font-size: 3rem;
+            text-align: center;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .red-suit { 
+            color: #dc2626;
+            background: linear-gradient(45deg, #dc2626, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .black-suit { 
+            color: #1f2937;
+            background: linear-gradient(45deg, #1f2937, #374151);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .card-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .flip-card {
+            animation: flipCard 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes flipCard {
+            0% { transform: rotateY(0deg) scale(1); }
+            50% { transform: rotateY(90deg) scale(1.1); }
+            100% { transform: rotateY(0deg) scale(1); }
+        }
+        
+        .casino-bg {
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .casino-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 4px);
+            pointer-events: none;
+        }
+        
+        .neon-text {
+            text-shadow: 
+                0 0 5px #fbbf24,
+                0 0 10px #fbbf24,
+                0 0 15px #fbbf24,
+                0 0 20px #fbbf24,
+                0 0 35px #fbbf24;
+            animation: neonPulse 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes neonPulse {
+            from { text-shadow: 0 0 5px #fbbf24, 0 0 10px #fbbf24, 0 0 15px #fbbf24, 0 0 20px #fbbf24, 0 0 35px #fbbf24; }
+            to { text-shadow: 0 0 2px #fbbf24, 0 0 5px #fbbf24, 0 0 8px #fbbf24, 0 0 12px #fbbf24, 0 0 20px #fbbf24; }
+        }
+        
+        .chip {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 4px solid rgba(255,255,255,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chip::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+        
+        .chip:hover::before {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .chip:hover {
+            transform: scale(1.15) rotate(5deg);
+            box-shadow: 0 0 30px rgba(255,255,255,0.6);
+        }
+        
+        .chip:active {
+            transform: scale(1.05);
+        }
+        
+        .chip-5 { background: linear-gradient(135deg, #dc2626, #ef4444, #fca5a5); }
+        .chip-10 { background: linear-gradient(135deg, #2563eb, #3b82f6, #93c5fd); }
+        .chip-25 { background: linear-gradient(135deg, #16a34a, #22c55e, #86efac); }
+        .chip-50 { background: linear-gradient(135deg, #7c3aed, #8b5cf6, #c4b5fd); }
+        .chip-100 { background: linear-gradient(135deg, #ea580c, #f97316, #fdba74); }
+        
+        .pulse-win {
+            animation: pulseWin 1.5s ease-in-out;
+        }
+        
+        @keyframes pulseWin {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.05); }
+            50% { transform: scale(1.1); }
+            75% { transform: scale(1.05); }
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .deal-button {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+            border: none;
+            color: #1f2937;
+            font-weight: 900;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 20px rgba(251, 191, 36, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .deal-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .deal-button:hover::before {
+            left: 100%;
+        }
+        
+        .deal-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(251, 191, 36, 0.6);
+        }
+        
+        .deal-button:active {
+            transform: translateY(-1px);
+        }
+        
+        .deal-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message-animation {
+            animation: messageSlide 0.5s ease-out;
+        }
+        
+        @keyframes messageSlide {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .streak-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1f2937;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .multiplier-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fbbf24;
+            text-shadow: 0 0 10px #fbbf24;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #fbbf24;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particle 2s ease-out forwards;
+        }
+        
+        @keyframes particle {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(0); opacity: 0; }
+        }
+        
+        .sound-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .sound-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body class="casino-bg text-white">
+    <!-- Sound Toggle -->
+    <div class="sound-toggle" onclick="toggleSound()" id="soundToggle">
+        <span id="soundIcon">🔊</span>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8 relative">
+            <h1 class="text-6xl font-bold neon-text mb-4">🎰 ROYAL HIGH CARD 🎰</h1>
+            <p class="text-xl text-gray-300">Premium Casino Experience</p>
+            <div class="streak-indicator" id="streakIndicator" style="display: none;">
+                🔥 Streak: <span id="streakCount">0</span>
+            </div>
+        </div>
+        
+        <!-- Game Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
+            <div class="stats-card">
+                <div class="text-3xl font-bold text-green-400 mb-2" id="balance">$1000</div>
+                <div class="text-sm text-gray-400">Balance</div>
+            </div>
+            <div class="stats-card">
+                <div class="text-3xl font-bold text-yellow-400 mb-2" id="currentBet">$0</div>
+                <div class="text-sm text-gray-400">Current Bet</div>
+            </div>
+            <div class="stats-card">
+                <div class="text-3xl font-bold text-blue-400 mb-2" id="wins">0</div>
+                <div class="text-sm text-gray-400">Wins</div>
+            </div>
+            <div class="stats-card">
+                <div class="text-3xl font-bold text-purple-400 mb-2" id="totalWinnings">$0</div>
+                <div class="text-sm text-gray-400">Total Won</div>
+            </div>
+        </div>
+        
+        <!-- Multiplier Display -->
+        <div class="text-center mb-6">
+            <div class="multiplier-display" id="multiplierDisplay">Win Multiplier: 2.0x</div>
+        </div>
+        
+        <!-- Betting Chips -->
+        <div class="text-center mb-8">
+            <h3 class="text-2xl mb-6 text-yellow-400">💰 Place Your Bet 💰</h3>
+            <div class="flex justify-center gap-6 flex-wrap">
+                <div class="chip chip-5" onclick="placeBet(5)">$5</div>
+                <div class="chip chip-10" onclick="placeBet(10)">$10</div>
+                <div class="chip chip-25" onclick="placeBet(25)">$25</div>
+                <div class="chip chip-50" onclick="placeBet(50)">$50</div>
+                <div class="chip chip-100" onclick="placeBet(100)">$100</div>
+            </div>
+            <div class="mt-6 space-x-4">
+                <button onclick="clearBet()" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg transition-all transform hover:scale-105">
+                    Clear Bet
+                </button>
+                <button onclick="maxBet()" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-all transform hover:scale-105">
+                    Max Bet
+                </button>
+            </div>
+        </div>
+        
+        <!-- Game Area -->
+        <div class="max-w-5xl mx-auto">
+            <!-- Cards Display -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-8">
+                <!-- Player Card -->
+                <div class="text-center">
+                    <h3 class="text-3xl mb-6 text-blue-400 font-bold">🎯 Your Card</h3>
+                    <div class="flex justify-center">
+                        <div id="playerCard" class="card card-back relative">
+                            <div class="text-white text-center text-5xl">🂠</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dealer Card -->
+                <div class="text-center">
+                    <h3 class="text-3xl mb-6 text-red-400 font-bold">🎲 Dealer's Card</h3>
+                    <div class="flex justify-center">
+                        <div id="dealerCard" class="card card-back relative">
+                            <div class="text-white text-center text-5xl">🂠</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Controls -->
+            <div class="text-center mb-8">
+                <button id="dealBtn" onclick="dealCards()" class="deal-button">
+                    ⚡ DEAL CARDS ⚡
+                </button>
+            </div>
+            
+            <!-- Game Message -->
+            <div id="gameMessage" class="text-center text-3xl font-bold mb-4 h-12 message-animation"></div>
+        </div>
+        
+        <!-- Enhanced Rules -->
+        <div class="max-w-4xl mx-auto mt-12 stats-card">
+            <h3 class="text-2xl font-bold mb-6 text-center text-yellow-400">🎯 Game Rules & Features</h3>
+            <div class="grid md:grid-cols-2 gap-6 text-gray-300">
+                <div>
+                    <h4 class="font-bold text-lg mb-3 text-blue-400">Basic Rules:</h4>
+                    <ul class="space-y-2">
+                        <li>• Higher card wins 2x your bet</li>
+                        <li>• Equal cards = tie (bet returned)</li>
+                        <li>• Lower card = lose your bet</li>
+                        <li>• Ace is highest (14 points)</li>
+                        <li>• King=13, Queen=12, Jack=11</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-3 text-green-400">Special Features:</h4>
+                    <ul class="space-y-2">
+                        <li>• Win streaks increase excitement</li>
+                        <li>• Detailed statistics tracking</li>
+                        <li>• Smooth animations & effects</li>
+                        <li>• Sound effects (toggle available)</li>
+                        <li>• Max bet for high rollers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let balance = 1000;
+        let currentBet = 0;
+        let wins = 0;
+        let totalWinnings = 0;
+        let gameInProgress = false;
+        let winStreak = 0;
+        let soundEnabled = true;
+        
+        const suits = ['♠', '♥', '♦', '♣'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        const valueMap = {'A': 14, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13};
+        
+        // Sound effects using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(frequency, duration, type = 'sine') {
+            if (!soundEnabled) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundIcon').textContent = soundEnabled ? '🔊' : '🔇';
+        }
+        
+        function updateDisplay() {
+            document.getElementById('balance').textContent = `$${balance.toLocaleString()}`;
+            document.getElementById('currentBet').textContent = `$${currentBet}`;
+            document.getElementById('wins').textContent = wins;
+            document.getElementById('totalWinnings').textContent = `$${totalWinnings.toLocaleString()}`;
+            
+            // Update streak indicator
+            const streakIndicator = document.getElementById('streakIndicator');
+            const streakCount = document.getElementById('streakCount');
+            
+            if (winStreak >= 2) {
+                streakIndicator.style.display = 'block';
+                streakCount.textContent = winStreak;
+            } else {
+                streakIndicator.style.display = 'none';
+            }
+            
+            // Update multiplier based on streak
+            const multiplier = Math.min(2.0 + (winStreak * 0.1), 3.0);
+            document.getElementById('multiplierDisplay').textContent = `Win Multiplier: ${multiplier.toFixed(1)}x`;
+        }
+        
+        function createParticles(element) {
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = centerX + 'px';
+                particle.style.top = centerY + 'px';
+                particle.style.animationDelay = (i * 0.1) + 's';
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.remove();
+                }, 2000);
+            }
+        }
+        
+        function placeBet(amount) {
+            if (gameInProgress) return;
+            
+            if (balance >= amount) {
+                currentBet += amount;
+                balance -= amount;
+                updateDisplay();
+                playSound(800, 0.1);
+                
+                // Enable deal button if bet is placed
+                document.getElementById('dealBtn').disabled = false;
+            } else {
+                showMessage('💸 Not enough balance!', 'text-red-500');
+                playSound(200, 0.3);
+            }
+        }
+        
+        function clearBet() {
+            if (gameInProgress) return;
+            
+            balance += currentBet;
+            currentBet = 0;
+            updateDisplay();
+            document.getElementById('dealBtn').disabled = true;
+            showMessage('🗑️ Bet cleared', 'text-yellow-500');
+            playSound(600, 0.2);
+        }
+        
+        function maxBet() {
+            if (gameInProgress) return;
+            
+            const maxBetAmount = Math.min(balance, 500); // Cap max bet at 500
+            if (maxBetAmount > 0) {
+                currentBet += maxBetAmount;
+                balance -= maxBetAmount;
+                updateDisplay();
+                document.getElementById('dealBtn').disabled = false;
+                showMessage(`💰 Max bet: $${maxBetAmount}!`, 'text-green-500');
+                playSound(1000, 0.2);
+            }
+        }
+        
+        function createCard(value, suit) {
+            const suitColor = (suit === '♥' || suit === '♦') ? 'red-suit' : 'black-suit';
+            return `
+                <div class="card-value ${suitColor}">${value}</div>
+                <div class="card-suit ${suitColor}">${suit}</div>
+                <div class="card-value ${suitColor}" style="transform: rotate(180deg);">${value}</div>
+            `;
+        }
+        
+        function getRandomCard() {
+            const suit = suits[Math.floor(Math.random() * suits.length)];
+            const value = values[Math.floor(Math.random() * values.length)];
+            return { value, suit, numericValue: valueMap[value] };
+        }
+        
+        function dealCards() {
+            if (currentBet === 0) {
+                showMessage('💸 Place a bet first!', 'text-red-500');
+                playSound(200, 0.3);
+                return;
+            }
+            
+            gameInProgress = true;
+            document.getElementById('dealBtn').disabled = true;
+            
+            // Play deal sound
+            playSound(400, 0.3);
+            
+            // Get random cards
+            const playerCard = getRandomCard();
+            const dealerCard = getRandomCard();
+            
+            // Add flip animation
+            document.getElementById('playerCard').classList.add('flip-card');
+            document.getElementById('dealerCard').classList.add('flip-card');
+            
+            showMessage('🎴 Dealing cards...', 'text-blue-400');
+            
+            // Reveal cards after animation
+            setTimeout(() => {
+                // Player card
+                const playerCardEl = document.getElementById('playerCard');
+                playerCardEl.className = 'card';
+                playerCardEl.innerHTML = createCard(playerCard.value, playerCard.suit);
+                
+                // Dealer card
+                const dealerCardEl = document.getElementById('dealerCard');
+                dealerCardEl.className = 'card';
+                dealerCardEl.innerHTML = createCard(dealerCard.value, dealerCard.suit);
+                
+                // Determine winner
+                setTimeout(() => {
+                    determineWinner(playerCard, dealerCard);
+                }, 800);
+                
+            }, 400);
+        }
+        
+        function determineWinner(playerCard, dealerCard) {
+            let message = '';
+            let messageClass = '';
+            
+            if (playerCard.numericValue > dealerCard.numericValue) {
+                // Player wins
+                winStreak++;
+                const multiplier = Math.min(2.0 + ((winStreak - 1) * 0.1), 3.0);
+                const winnings = Math.floor(currentBet * multiplier);
+                
+                balance += winnings;
+                wins++;
+                totalWinnings += winnings;
+                
+                message = `🎉 YOU WIN! +$${winnings}`;
+                if (winStreak > 1) {
+                    message += ` (${winStreak} win streak!)`;
+                }
+                messageClass = 'text-green-500 pulse-win';
+                
+                // Add win animation and particles
+                const playerCardEl = document.getElementById('playerCard');
+                playerCardEl.classList.add('pulse-win');
+                createParticles(playerCardEl);
+                
+                // Play win sound
+                playSound(800, 0.5);
+                setTimeout(() => playSound(1000, 0.3), 200);
+                
+            } else if (playerCard.numericValue < dealerCard.numericValue) {
+                // Dealer wins
+                winStreak = 0;
+                message = `💔 Dealer Wins! -$${currentBet}`;
+                messageClass = 'text-red-500';
+                
+                // Play lose sound
+                playSound(200, 0.8);
+                
+            } else {
+                // Tie
+                balance += currentBet;
+                message = `🤝 It's a Tie! Bet returned`;
+                messageClass = 'text-yellow-500';
+                
+                // Play tie sound
+                playSound(500, 0.4);
+            }
+            
+            showMessage(message, messageClass);
+            currentBet = 0;
+            updateDisplay();
+            
+            // Reset for next round
+            setTimeout(() => {
+                resetGame();
+            }, 4000);
+        }
+        
+        function resetGame() {
+            gameInProgress = false;
+            
+            // Reset cards to back
+            const playerCardEl = document.getElementById('playerCard');
+            const dealerCardEl = document.getElementById('dealerCard');
+            
+            playerCardEl.className = 'card card-back';
+            playerCardEl.innerHTML = '<div class="text-white text-center text-5xl">🂠</div>';
+            
+            dealerCardEl.className = 'card card-back';
+            dealerCardEl.innerHTML = '<div class="text-white text-center text-5xl">🂠</div>';
+            
+            // Enable deal button only if balance > 0
+            const canPlay = balance > 0;
+            document.getElementById('dealBtn').disabled = !canPlay;
+            
+            if (canPlay) {
+                showMessage('🎯 Place your bet to play again!', 'text-blue-400');
+            } else {
+                showMessage('🎲 Game Over! Refresh to play again.', 'text-red-500');
+                playSound(150, 1.0);
+            }
+        }
+        
+        function showMessage(text, className) {
+            const messageEl = document.getElementById('gameMessage');
+            messageEl.textContent = text;
+            messageEl.className = `text-center text-3xl font-bold mb-4 h-12 message-animation ${className}`;
+        }
+        
+        // Initialize game
+        updateDisplay();
+        document.getElementById('dealBtn').disabled = true;
+        showMessage('🎰 Welcome to Royal High Card! Place your bet to start!', 'text-blue-400');
+        
+        // Add some initial flair
+        setTimeout(() => {
+            playSound(600, 0.2);
+        }, 1000);
+    </script>
+</body>
+</html>
