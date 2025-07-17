@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dragon's Dice Casino</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .casino-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .main-game {
+            background: rgba(0,0,0,0.4);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .sidebar {
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .dice {
+            width: 80px;
+            height: 80px;
+            background: #fff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #333;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .dice.rolling {
+            animation: roll 1s ease-in-out;
+        }
+
+        @keyframes roll {
+            0%, 100% { transform: rotateX(0) rotateY(0); }
+            25% { transform: rotateX(90deg) rotateY(0); }
+            50% { transform: rotateX(0) rotateY(90deg); }
+            75% { transform: rotateX(90deg) rotateY(90deg); }
+        }
+
+        .betting-section {
+            margin-bottom: 30px;
+        }
+
+        .bet-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .bet-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .bet-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .bet-button.active {
+            background: linear-gradient(45deg, #00d2d3, #54a0ff);
+            box-shadow: 0 0 15px rgba(84, 160, 255, 0.5);
+        }
+
+        .bet-amount {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .bet-input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .bet-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .quick-bet {
+            display: flex;
+            gap: 10px;
+        }
+
+        .quick-bet button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .quick-bet button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .roll-button {
+            width: 100%;
+            background: linear-gradient(45deg, #ffd700, #ffb347);
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .roll-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .roll-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #ccc;
+        }
+
+        .stat-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .result-display {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .result-win {
+            background: linear-gradient(45deg, #00d2d3, #54a0ff);
+            color: white;
+        }
+
+        .result-lose {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .rules {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .rules h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .rules ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .rules li {
+            margin-bottom: 5px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .rules li::before {
+            content: "🎲";
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .dice {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="casino-container">
+        <div class="header">
+            <h1>🐉 Dragon's Dice Casino 🐉</h1>
+            <p>Predict the dice and win big!</p>
+        </div>
+
+        <div class="game-board">
+            <div class="main-game">
+                <div class="dice-container">
+                    <div class="dice" id="dice1">🎲</div>
+                    <div class="dice" id="dice2">🎲</div>
+                    <div class="dice" id="dice3">🎲</div>
+                </div>
+
+                <div id="result" class="result-display" style="display: none;"></div>
+
+                <div class="betting-section">
+                    <h3 style="margin-bottom: 15px; color: #ffd700;">Choose Your Bet:</h3>
+                    <div class="bet-options">
+                        <button class="bet-button" data-bet="low">Low (3-10)</button>
+                        <button class="bet-button" data-bet="high">High (11-18)</button>
+                        <button class="bet-button" data-bet="triple">Triple</button>
+                        <button class="bet-button" data-bet="even">Even Sum</button>
+                        <button class="bet-button" data-bet="odd">Odd Sum</button>
+                        <button class="bet-button" data-bet="exact" data-value="11">Exact 11</button>
+                    </div>
+
+                    <div class="bet-amount">
+                        <input type="number" class="bet-input" id="betAmount" placeholder="Enter bet amount..." min="1" max="1000" value="10">
+                        <div class="quick-bet">
+                            <button onclick="setBetAmount(10)">$10</button>
+                            <button onclick="setBetAmount(25)">$25</button>
+                            <button onclick="setBetAmount(50)">$50</button>
+                            <button onclick="setBetAmount(100)">$100</button>
+                        </div>
+                    </div>
+
+                    <button class="roll-button" id="rollButton" onclick="rollDice()">🎲 ROLL THE DICE 🎲</button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="stats">
+                    <h3 style="color: #ffd700; margin-bottom: 15px;">Your Stats</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Balance:</span>
+                        <span class="stat-value" id="balance">$1000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Current Bet:</span>
+                        <span class="stat-value" id="currentBet">$0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Games Played:</span>
+                        <span class="stat-value" id="gamesPlayed">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Games Won:</span>
+                        <span class="stat-value" id="gamesWon">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Winnings:</span>
+                        <span class="stat-value" id="totalWinnings">$0</span>
+                    </div>
+                </div>
+
+                <div class="rules">
+                    <h3>How to Play</h3>
+                    <ul>
+                        <li>Choose your bet type</li>
+                        <li>Set your bet amount</li>
+                        <li>Click "Roll the Dice"</li>
+                        <li>Win based on the outcome!</li>
+                    </ul>
+                    
+                    <h3 style="margin-top: 15px;">Payouts</h3>
+                    <ul>
+                        <li>Low/High: 2x payout</li>
+                        <li>Even/Odd: 2x payout</li>
+                        <li>Triple: 30x payout</li>
+                        <li>Exact 11: 15x payout</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            balance: 1000,
+            currentBet: 0,
+            betType: null,
+            gamesPlayed: 0,
+            gamesWon: 0,
+            totalWinnings: 0,
+            isRolling: false
+        };
+
+        const diceValues = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+        function updateDisplay() {
+            document.getElementById('balance').textContent = `$${gameState.balance}`;
+            document.getElementById('currentBet').textContent = `$${gameState.currentBet}`;
+            document.getElementById('gamesPlayed').textContent = gameState.gamesPlayed;
+            document.getElementById('gamesWon').textContent = gameState.gamesWon;
+            document.getElementById('totalWinnings').textContent = `$${gameState.totalWinnings}`;
+        }
+
+        function setBetAmount(amount) {
+            document.getElementById('betAmount').value = amount;
+        }
+
+        document.querySelectorAll('.bet-button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.bet-button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                gameState.betType = this.dataset.bet;
+                gameState.exactValue = this.dataset.value ? parseInt(this.dataset.value) : null;
+            });
+        });
+
+        function rollDice() {
+            if (gameState.isRolling) return;
+            
+            const betAmount = parseInt(document.getElementById('betAmount').value);
+            
+            if (!gameState.betType) {
+                alert('Please select a bet type first!');
+                return;
+            }
+            
+            if (!betAmount || betAmount <= 0) {
+                alert('Please enter a valid bet amount!');
+                return;
+            }
+            
+            if (betAmount > gameState.balance) {
+                alert('Insufficient balance!');
+                return;
+            }
+
+            gameState.isRolling = true;
+            gameState.currentBet = betAmount;
+            gameState.balance -= betAmount;
+            
+            document.getElementById('rollButton').disabled = true;
+            document.getElementById('result').style.display = 'none';
+            
+            const dice = [
+                document.getElementById('dice1'),
+                document.getElementById('dice2'),
+                document.getElementById('dice3')
+            ];
+            
+            dice.forEach(die => die.classList.add('rolling'));
+            
+            // Animate rolling
+            let rollCount = 0;
+            const rollInterval = setInterval(() => {
+                dice.forEach(die => {
+                    die.textContent = diceValues[Math.floor(Math.random() * 6)];
+                });
+                rollCount++;
+                
+                if (rollCount > 10) {
+                    clearInterval(rollInterval);
+                    finishRoll(dice);
+                }
+            }, 100);
+        }
+
+        function finishRoll(dice) {
+            const finalRolls = [
+                Math.floor(Math.random() * 6) + 1,
+                Math.floor(Math.random() * 6) + 1,
+                Math.floor(Math.random() * 6) + 1
+            ];
+            
+            dice.forEach((die, index) => {
+                die.textContent = diceValues[finalRolls[index] - 1];
+                die.classList.remove('rolling');
+            });
+            
+            const sum = finalRolls.reduce((a, b) => a + b, 0);
+            const isTriple = finalRolls[0] === finalRolls[1] && finalRolls[1] === finalRolls[2];
+            
+            let won = false;
+            let multiplier = 0;
+            
+            switch (gameState.betType) {
+                case 'low':
+                    won = sum >= 3 && sum <= 10;
+                    multiplier = 2;
+                    break;
+                case 'high':
+                    won = sum >= 11 && sum <= 18;
+                    multiplier = 2;
+                    break;
+                case 'even':
+                    won = sum % 2 === 0;
+                    multiplier = 2;
+                    break;
+                case 'odd':
+                    won = sum % 2 === 1;
+                    multiplier = 2;
+                    break;
+                case 'triple':
+                    won = isTriple;
+                    multiplier = 30;
+                    break;
+                case 'exact':
+                    won = sum === gameState.exactValue;
+                    multiplier = 15;
+                    break;
+            }
+            
+            gameState.gamesPlayed++;
+            
+            const resultDiv = document.getElementById('result');
+            
+            if (won) {
+                const winnings = gameState.currentBet * multiplier;
+                gameState.balance += winnings;
+                gameState.gamesWon++;
+                gameState.totalWinnings += winnings - gameState.currentBet;
+                
+                resultDiv.textContent = `🎉 YOU WON! Dice: ${finalRolls.join('-')} (Sum: ${sum}) - Won $${winnings}!`;
+                resultDiv.className = 'result-display result-win';
+            } else {
+                resultDiv.textContent = `💔 You Lost! Dice: ${finalRolls.join('-')} (Sum: ${sum}) - Lost $${gameState.currentBet}`;
+                resultDiv.className = 'result-display result-lose';
+            }
+            
+            resultDiv.style.display = 'block';
+            
+            updateDisplay();
+            
+            gameState.isRolling = false;
+            gameState.currentBet = 0;
+            document.getElementById('rollButton').disabled = false;
+            
+            if (gameState.balance <= 0) {
+                setTimeout(() => {
+                    alert('Game Over! You\'re out of money. Resetting your balance to $1000.');
+                    gameState.balance = 1000;
+                    updateDisplay();
+                }, 2000);
+            }
+        }
+
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+</html>
