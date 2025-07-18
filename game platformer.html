@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Canvas Platformer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            margin: 20px 0;
+            border: 4px solid #333;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            background: #000;
+        }
+        
+        .ui {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .controls {
+            color: white;
+            text-align: center;
+            margin: 10px 0;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #ff6b6b;
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .level-complete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,128,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #00ff00;
+            display: none;
+        }
+
+        .victory-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 5px solid #ff6b6b;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            display: none;
+            animation: victoryPulse 2s infinite;
+        }
+
+        @keyframes victoryPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        .victory-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: rainbow 3s infinite;
+        }
+
+        @keyframes rainbow {
+            0% { color: #ff0000; }
+            16% { color: #ff8000; }
+            33% { color: #ffff00; }
+            49% { color: #00ff00; }
+            66% { color: #0080ff; }
+            82% { color: #8000ff; }
+            100% { color: #ff0000; }
+        }
+
+        .firework {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body>
+    <div class="ui">
+        <div>Score: <span id="score">0</span> | Lives: <span id="lives">3</span> | Level: <span id="level">1</span> | High Score: <span id="highScore">0</span></div>
+    </div>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+    </div>
+    
+    <div class="controls">
+        Use ARROW KEYS to move, SPACEBAR to jump, R to restart
+    </div>
+    
+    <div class="game-over" id="gameOver">
+        <h2>Game Over!</h2>
+        <p>Final Score: <span id="finalScore">0</span></p>
+        <button class="btn" onclick="restartGame()">Play Again</button>
+    </div>
+    
+    <div class="level-complete" id="levelComplete">
+        <h2>Level Complete!</h2>
+        <p>Bonus: <span id="levelBonus">0</span> points</p>
+        <button class="btn" onclick="nextLevel()">Next Level</button>
+    </div>
+
+    <div class="victory-screen" id="victoryScreen">
+        <div class="victory-title">🎉 VICTORY! 🎉</div>
+        <h2>You conquered all levels!</h2>
+        <p>Final Score: <span id="victoryScore">0</span></p>
+        <p>Levels Completed: <span id="levelsCompleted">0</span></p>
+        <p id="newRecord" style="display: none; color: #ff6b6b; font-weight: bold;">🏆 NEW HIGH SCORE! 🏆</p>
+        <button class="btn" onclick="restartGame()">Play Again</button>
+    </div>
+
+    <script>
+        // Game variables
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let game = {
+            score: 0,
+            lives: 3,
+            level: 1,
+            maxLevel: 5,
+            highScore: parseInt(localStorage.getItem('platformerHighScore') || '0'),
+            state: 'playing', // playing, gameOver, levelComplete, victory
+            keys: {},
+            camera: { x: 0, y: 0 },
+            screenShake: 0,
+            backgroundStars: []
+        };
+        
+        // Player object with animation states
+        let player = {
+            x: 100,
+            y: 200,
+            width: 32,
+            height: 32,
+            vx: 0,
+            vy: 0,
+            speed: 5,
+            jumpPower: 15,
+            onGround: false,
+            color: '#ff6b6b',
+            direction: 1,
+            animFrame: 0,
+            animSpeed: 0.2,
+            isJumping: false,
+            trail: []
+        };
+        
+        // Game objects arrays
+        let platforms = [];
+        let coins = [];
+        let enemies = [];
+        let particles = [];
+        let fireworks = [];
+        
+        // Initialize background stars
+        function initStars() {
+            game.backgroundStars = [];
+            for(let i = 0; i < 100; i++) {
+                game.backgroundStars.push({
+                    x: Math.random() * 2000,
+                    y: Math.random() * 400,
+                    size: Math.random() * 2 + 1,
+                    twinkle: Math.random() * Math.PI * 2,
+                    speed: Math.random() * 0.02 + 0.01
+                });
+            }
+        }
+        
+        // Sound system
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function createTone(frequency, duration, type = 'square') {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        function playSound(type) {
+            try {
+                switch(type) {
+                    case 'jump':
+                        createTone(400, 0.1);
+                        break;
+                    case 'coin':
+                        createTone(800, 0.1, 'sine');
+                        setTimeout(() => createTone(1000, 0.1, 'sine'), 50);
+                        break;
+                    case 'enemy':
+                        createTone(200, 0.3);
+                        break;
+                    case 'levelComplete':
+                        createTone(523, 0.2, 'sine');
+                        setTimeout(() => createTone(659, 0.2, 'sine'), 200);
+                        setTimeout(() => createTone(784, 0.3, 'sine'), 400);
+                        break;
+                    case 'victory':
+                        // Victory fanfare
+                        const notes = [523, 659, 784, 1047];
+                        notes.forEach((note, i) => {
+                            setTimeout(() => createTone(note, 0.3, 'sine'), i * 200);
+                        });
+                        setTimeout(() => {
+                            createTone(1047, 0.8, 'sine');
+                        }, 800);
+                        break;
+                }
+            } catch(e) {
+                console.log('Audio not available');
+            }
+        }
+        
+        // Level generation
+        function generateLevel(levelNum) {
+            platforms = [];
+            coins = [];
+            enemies = [];
+            
+            // Ground platforms
+            for(let i = 0; i < 20; i++) {
+                platforms.push({
+                    x: i * 100,
+                    y: 350,
+                    width: 100,
+                    height: 50,
+                    color: '#4a90e2'
+                });
+            }
+            
+            // Floating platforms
+            const platformConfigs = [
+                { x: 200, y: 280, width: 100, height: 20 },
+                { x: 400, y: 220, width: 100, height: 20 },
+                { x: 600, y: 160, width: 100, height: 20 },
+                { x: 800, y: 280, width: 100, height: 20 },
+                { x: 1000, y: 200, width: 100, height: 20 },
+                { x: 1200, y: 140, width: 100, height: 20 },
+                { x: 1400, y: 280, width: 100, height: 20 },
+                { x: 1600, y: 180, width: 150, height: 20 }
+            ];
+            
+            platformConfigs.forEach(config => {
+                platforms.push({
+                    ...config,
+                    color: '#50c878'
+                });
+            });
+            
+            // Coins
+            const coinPositions = [
+                { x: 250, y: 240 },
+                { x: 450, y: 180 },
+                { x: 650, y: 120 },
+                { x: 850, y: 240 },
+                { x: 1050, y: 160 },
+                { x: 1250, y: 100 },
+                { x: 1450, y: 240 },
+                { x: 1650, y: 140 }
+            ];
+            
+            coinPositions.forEach(pos => {
+                coins.push({
+                    x: pos.x,
+                    y: pos.y,
+                    width: 20,
+                    height: 20,
+                    collected: false,
+                    rotation: 0
+                });
+            });
+            
+            // Enemies (more challenging each level)
+            const enemyCount = Math.min(3 + levelNum, 8);
+            for(let i = 0; i < enemyCount; i++) {
+                enemies.push({
+                    x: 300 + i * 200,
+                    y: 318,
+                    width: 24,
+                    height: 24,
+                    vx: (Math.random() > 0.5 ? 1 : -1) * (1 + levelNum * 0.5),
+                    color: '#e74c3c',
+                    minX: 200 + i * 200,
+                    maxX: 400 + i * 200
+                });
+            }
+        }
+        
+        // Enhanced particle system
+        function createParticle(x, y, color, type = 'normal') {
+            const baseParticle = {
+                x: x,
+                y: y,
+                life: 1,
+                color: color,
+                size: Math.random() * 4 + 2
+            };
+            
+            switch(type) {
+                case 'explosion':
+                    for(let i = 0; i < 12; i++) {
+                        particles.push({
+                            ...baseParticle,
+                            vx: Math.cos(i * Math.PI / 6) * (Math.random() * 6 + 2),
+                            vy: Math.sin(i * Math.PI / 6) * (Math.random() * 6 + 2),
+                            decay: 0.015,
+                            size: Math.random() * 6 + 3
+                        });
+                    }
+                    break;
+                case 'trail':
+                    particles.push({
+                        ...baseParticle,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: Math.random() * 2,
+                        decay: 0.05,
+                        size: Math.random() * 3 + 1
+                    });
+                    break;
+                default:
+                    particles.push({
+                        ...baseParticle,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: Math.random() * -8 - 2,
+                        decay: 0.02
+                    });
+            }
+        }
+        
+        // Fireworks system
+        function createFirework(x, y) {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            for(let i = 0; i < 20; i++) {
+                const angle = (i / 20) * Math.PI * 2;
+                const speed = Math.random() * 4 + 2;
+                fireworks.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: color,
+                    life: 1,
+                    decay: 0.01,
+                    size: Math.random() * 3 + 2,
+                    gravity: 0.1
+                });
+            }
+        }
+        
+        // Collision detection
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+        
+        // Input handling
+        document.addEventListener('keydown', (e) => {
+            game.keys[e.code] = true;
+            
+            if(e.code === 'Space' && game.state === 'playing') {
+                e.preventDefault();
+                if(player.onGround) {
+                    player.vy = -player.jumpPower;
+                    player.onGround = false;
+                    playSound('jump');
+                }
+            }
+            
+            if(e.code === 'KeyR') {
+                restartGame();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            game.keys[e.code] = false;
+        });
+        
+        // Game update function
+        function update() {
+            if(game.state === 'victory') {
+                // Update fireworks
+                fireworks = fireworks.filter(fw => {
+                    fw.x += fw.vx;
+                    fw.y += fw.vy;
+                    fw.vy += fw.gravity;
+                    fw.life -= fw.decay;
+                    return fw.life > 0;
+                });
+                
+                // Create new fireworks randomly
+                if(Math.random() < 0.1) {
+                    createFirework(
+                        Math.random() * canvas.width,
+                        Math.random() * canvas.height * 0.5
+                    );
+                }
+                return;
+            }
+            
+            if(game.state !== 'playing') return;
+            
+            // Update background stars
+            game.backgroundStars.forEach(star => {
+                star.twinkle += star.speed;
+            });
+            
+            // Screen shake decay
+            if(game.screenShake > 0) {
+                game.screenShake *= 0.9;
+                if(game.screenShake < 0.1) game.screenShake = 0;
+            }
+            
+            // Player trail effect
+            if(Math.abs(player.vx) > 2 || !player.onGround) {
+                player.trail.push({
+                    x: player.x + player.width/2,
+                    y: player.y + player.height/2,
+                    life: 0.3
+                });
+            }
+            
+            // Update trail
+            player.trail = player.trail.filter(trail => {
+                trail.life -= 0.02;
+                return trail.life > 0;
+            });
+            
+            // Animation frame updates
+            if(Math.abs(player.vx) > 0.5) {
+                player.animFrame += player.animSpeed;
+            }
+            
+            player.isJumping = !player.onGround;
+            
+            // Player movement
+            if(game.keys['ArrowLeft']) {
+                player.vx = -player.speed;
+                player.direction = -1;
+            } else if(game.keys['ArrowRight']) {
+                player.vx = player.speed;
+                player.direction = 1;
+            } else {
+                player.vx *= 0.8; // Friction
+            }
+            
+            // Gravity
+            player.vy += 0.8;
+            
+            // Update player position
+            player.x += player.vx;
+            player.y += player.vy;
+            
+            // Platform collision
+            player.onGround = false;
+            platforms.forEach(platform => {
+                if(checkCollision(player, platform)) {
+                    // Top collision (landing)
+                    if(player.vy > 0 && player.y < platform.y) {
+                        player.y = platform.y - player.height;
+                        player.vy = 0;
+                        player.onGround = true;
+                    }
+                    // Bottom collision
+                    else if(player.vy < 0 && player.y > platform.y) {
+                        player.y = platform.y + platform.height;
+                        player.vy = 0;
+                    }
+                    // Side collisions
+                    else if(player.vx > 0) {
+                        player.x = platform.x - player.width;
+                        player.vx = 0;
+                    }
+                    else if(player.vx < 0) {
+                        player.x = platform.x + platform.width;
+                        player.vx = 0;
+                    }
+                }
+            });
+            
+            // Coin collection
+            coins.forEach(coin => {
+                if(!coin.collected && checkCollision(player, coin)) {
+                    coin.collected = true;
+                    game.score += 100;
+                    playSound('coin');
+                    
+                    // Enhanced particle effects
+                    createParticle(coin.x + 10, coin.y + 10, '#ffd700', 'explosion');
+                    
+                    // Screen shake
+                    game.screenShake = 3;
+                }
+                coin.rotation += 0.1;
+            });
+            
+            // Enemy movement and collision
+            enemies.forEach(enemy => {
+                enemy.x += enemy.vx;
+                
+                // Bounce off boundaries
+                if(enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
+                    enemy.vx *= -1;
+                }
+                
+                // Player collision
+                if(checkCollision(player, enemy)) {
+                    // Jump on enemy
+                    if(player.vy > 0 && player.y < enemy.y) {
+                        enemy.x = -1000; // Remove enemy
+                        player.vy = -8; // Bounce
+                        game.score += 200;
+                        playSound('enemy');
+                        
+                        // Enhanced explosion effect
+                        createParticle(enemy.x + 12, enemy.y + 12, '#e74c3c', 'explosion');
+                        game.screenShake = 5;
+                    } else {
+                        // Take damage
+                        game.lives--;
+                        if(game.lives <= 0) {
+                            gameOver();
+                        } else {
+                            // Respawn player
+                            player.x = 100;
+                            player.y = 200;
+                            player.vx = 0;
+                            player.vy = 0;
+                        }
+                    }
+                }
+            });
+            
+            // Update particles
+            particles = particles.filter(particle => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.vy += 0.3; // Gravity
+                particle.life -= particle.decay;
+                return particle.life > 0;
+            });
+            
+            // Create player trail particles
+            if(Math.random() < 0.3 && (Math.abs(player.vx) > 1 || !player.onGround)) {
+                createParticle(player.x + Math.random() * player.width, 
+                             player.y + player.height, player.color, 'trail');
+            }
+            
+            // Camera follow
+            game.camera.x = player.x - canvas.width / 2;
+            game.camera.y = player.y - canvas.height / 2;
+            
+            // Clamp camera
+            game.camera.x = Math.max(0, game.camera.x);
+            game.camera.y = Math.max(-100, Math.min(0, game.camera.y));
+            
+            // Death by falling
+            if(player.y > 500) {
+                game.lives--;
+                if(game.lives <= 0) {
+                    gameOver();
+                } else {
+                    player.x = 100;
+                    player.y = 200;
+                    player.vx = 0;
+                    player.vy = 0;
+                }
+            }
+            
+            // Level completion
+            if(player.x > 1700) {
+                if(game.level >= game.maxLevel) {
+                    victory();
+                } else {
+                    levelComplete();
+                }
+            }
+            
+            updateUI();
+        }
+        
+        // Rendering function
+        function render() {
+            // Clear canvas with animated gradient background
+            const time = Date.now() * 0.001;
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+
+            if(game.state === 'victory') {
+                // Rainbow background for victory
+                gradient.addColorStop(0, `hsl(${(time * 50) % 360}, 70%, 60%)`);
+                gradient.addColorStop(0.5, `hsl(${(time * 50 + 60) % 360}, 70%, 50%)`);
+                gradient.addColorStop(1, `hsl(${(time * 50 + 120) % 360}, 70%, 40%)`);
+            } else {
+                gradient.addColorStop(0, '#87CEEB');
+                gradient.addColorStop(1, '#98FB98');
+            }
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw twinkling stars
+            game.backgroundStars.forEach(star => {
+                const alpha = (Math.sin(star.twinkle) + 1) * 0.5;
+                ctx.save();
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(star.x - game.camera.x * 0.1, star.y - game.camera.y * 0.1, star.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+            
+            // Apply screen shake
+            if(game.screenShake > 0) {
+                ctx.save();
+                ctx.translate(
+                    (Math.random() - 0.5) * game.screenShake,
+                    (Math.random() - 0.5) * game.screenShake
+                );
+            }
+            
+            // Save context for camera transform
+            ctx.save();
+            ctx.translate(-game.camera.x, -game.camera.y);
+            // Draw platforms with glow effect
+            platforms.forEach(platform => {
+                // Glow effect
+                ctx.save();
+                ctx.shadowColor = platform.color;
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = platform.color;
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                ctx.restore();
+                
+                // Add animated highlight
+                const highlightIntensity = (Math.sin(Date.now() * 0.003) + 1) * 0.2 + 0.1;
+                ctx.fillStyle = `rgba(255,255,255,${highlightIntensity})`;
+                ctx.fillRect(platform.x, platform.y, platform.width, 5);
+            });
+            
+            // Draw coins with enhanced animation
+            coins.forEach(coin => {
+                if(!coin.collected) {
+                    ctx.save();
+                    ctx.translate(coin.x + coin.width/2, coin.y + coin.height/2);
+                    
+                    // Floating animation
+                    const floatOffset = Math.sin(Date.now() * 0.005 + coin.x * 0.01) * 3;
+                    ctx.translate(0, floatOffset);
+                    
+                    ctx.rotate(coin.rotation);
+                    
+                    // Glow effect
+                    ctx.shadowColor = '#ffd700';
+                    ctx.shadowBlur = 15;
+                    
+                    // Gold coin with sparkle effect
+                    ctx.fillStyle = '#ffd700';
+                    ctx.fillRect(-coin.width/2, -coin.height/2, coin.width, coin.height);
+                    
+                    // Inner sparkle
+                    const sparkle = (Math.sin(Date.now() * 0.01) + 1) * 0.5;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${sparkle})`;
+                    ctx.fillRect(-coin.width/3, -coin.height/3, coin.width*2/3, coin.height*2/3);
+                    
+                    ctx.restore();
+                }
+            });
+            
+            // Draw enemies with animation
+            enemies.forEach(enemy => {
+                if(enemy.x > -1000) {
+                    ctx.save();
+                    
+                    // Bounce animation
+                    const bounce = Math.abs(Math.sin(Date.now() * 0.01 + enemy.x * 0.01)) * 2;
+                    ctx.translate(0, -bounce);
+                    
+                    // Glow effect
+                    ctx.shadowColor = enemy.color;
+                    ctx.shadowBlur = 8;
+                    
+                    ctx.fillStyle = enemy.color;
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                    
+                    // Animated eyes
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(enemy.x + 4, enemy.y + 4, 4, 4);
+                    ctx.fillRect(enemy.x + 16, enemy.y + 4, 4, 4);
+                    
+                    // Blinking effect
+                    const blink = Math.sin(Date.now() * 0.005) > 0.9;
+                    if(!blink) {
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(enemy.x + 5, enemy.y + 5, 2, 2);
+                        ctx.fillRect(enemy.x + 17, enemy.y + 5, 2, 2);
+                    }
+                    
+                    ctx.restore();
+                }
+            });
+
+            // FIXED: Player rendering moved to after platforms, coins, and enemies
+            // Draw player trail
+            player.trail.forEach(trail => {
+                ctx.save();
+                ctx.globalAlpha = trail.life;
+                ctx.fillStyle = player.color;
+                ctx.beginPath();
+                ctx.arc(trail.x, trail.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+            
+            // Draw enhanced player with animations
+            ctx.save();
+            
+            // Player glow effect
+            ctx.shadowColor = player.color;
+            ctx.shadowBlur = player.isJumping ? 15 : 8;
+            
+            // Squash and stretch animation
+            let scaleX = 1;
+            let scaleY = 1;
+            
+            if(player.isJumping) {
+                scaleX = 0.8;
+                scaleY = 1.2;
+            } else if(Math.abs(player.vx) > 3) {
+                scaleX = 1.1;
+                scaleY = 0.9;
+            }
+            
+            // Walking animation
+            if(Math.abs(player.vx) > 0.5 && player.onGround) {
+                scaleY += Math.sin(player.animFrame) * 0.1;
+            }
+            
+            ctx.translate(player.x + player.width/2, player.y + player.height/2);
+            ctx.scale(scaleX, scaleY);
+            ctx.translate(-player.width/2, -player.height/2);
+            
+            ctx.fillStyle = player.color;
+            ctx.fillRect(0, 0, player.width, player.height);
+            
+            // Enhanced player details
+            ctx.fillStyle = 'white';
+            // Eyes with direction
+            const eyeOffset = player.direction === 1 ? 0 : 2;
+            ctx.fillRect(6 + eyeOffset, 8, 4, 4);
+            ctx.fillRect(22 - eyeOffset, 8, 4, 4);
+            
+            // Pupils
+            ctx.fillStyle = 'black';
+            ctx.fillRect(7 + eyeOffset, 9, 2, 2);
+            ctx.fillRect(23 - eyeOffset, 9, 2, 2);
+            
+            // Animated smile
+            ctx.fillStyle = 'white';
+            ctx.fillRect(10, 20, 12, 2);
+            ctx.fillRect(8, 18, 2, 2);
+            ctx.fillRect(22, 18, 2, 2);
+            
+            ctx.restore();
+            
+            // Draw particles with enhanced effects
+            particles.forEach(particle => {
+                ctx.save();
+                ctx.globalAlpha = particle.life;
+                ctx.fillStyle = particle.color;
+                
+                // Add sparkle effect to gold particles
+                if(particle.color === '#ffd700') {
+                    ctx.shadowColor = particle.color;
+                    ctx.shadowBlur = 5;
+                }
+                
+                ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+                ctx.restore();
+            });
+            
+            ctx.restore(); // Camera transform
+            
+            // Draw fireworks (victory screen)
+            if(game.state === 'victory') {
+                fireworks.forEach(fw => {
+                    ctx.save();
+                    ctx.globalAlpha = fw.life;
+                    ctx.fillStyle = fw.color;
+                    ctx.shadowColor = fw.color;
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(fw.x, fw.y, fw.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+        // Restore screen shake
+            if(game.screenShake > 0) {
+                ctx.restore();
+            }
+        }
+        // UI updates
+        function updateUI() {
+            document.getElementById('score').textContent = game.score;
+            document.getElementById('lives').textContent = game.lives;
+            document.getElementById('level').textContent = game.level;
+            document.getElementById('highScore').textContent = game.highScore;
+        }
+        
+        // Game over
+        function gameOver() {
+            game.state = 'gameOver';
+            playSound('gameOver');
+            
+            if(game.score > game.highScore) {
+                game.highScore = game.score;
+                localStorage.setItem('platformerHighScore', game.highScore.toString());
+            }
+            
+            document.getElementById('finalScore').textContent = game.score;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        // Level complete
+        function levelComplete() {
+            game.state = 'levelComplete';
+            playSound('levelComplete');
+            
+            const bonus = game.lives * 500 + (coins.filter(c => c.collected).length * 50);
+            game.score += bonus;
+            
+            document.getElementById('levelBonus').textContent = bonus;
+            document.getElementById('levelComplete').style.display = 'block';
+        }
+        
+        // Victory screen
+        function victory() {
+            game.state = 'victory';
+            playSound('victory');
+            
+            if(game.score > game.highScore) {
+                game.highScore = game.score;
+                localStorage.setItem('platformerHighScore', game.highScore.toString());
+                document.getElementById('newRecord').style.display = 'block';
+            }
+            
+            // Start fireworks
+            for(let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createFirework(
+                        Math.random() * canvas.width,
+                        Math.random() * canvas.height * 0.5
+                    );
+                }, i * 500);
+            }
+            
+            document.getElementById('victoryScore').textContent = game.score;
+            document.getElementById('levelsCompleted').textContent = game.maxLevel;
+            document.getElementById('victoryScreen').style.display = 'block';
+        }
+        
+        // Next level
+        function nextLevel() {
+            if(game.level >= game.maxLevel) {
+                victory();
+                return;
+            }
+            
+            game.level++;
+            game.state = 'playing';
+            
+            // Reset player
+            player.x = 100;
+            player.y = 200;
+            player.vx = 0;
+            player.vy = 0;
+            player.trail = [];
+            
+            generateLevel(game.level);
+            document.getElementById('levelComplete').style.display = 'none';
+        }
+        
+        // Restart game
+        function restartGame() {
+            game.score = 0;
+            game.lives = 3;
+            game.level = 1;
+            game.state = 'playing';
+            game.screenShake = 0;
+            
+            player.x = 100;
+            player.y = 200;
+            player.vx = 0;
+            player.vy = 0;
+            player.trail = [];
+            player.animFrame = 0;
+            
+            particles = [];
+            fireworks = [];
+            generateLevel(1);
+            
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('levelComplete').style.display = 'none';
+            document.getElementById('victoryScreen').style.display = 'none';
+            document.getElementById('newRecord').style.display = 'none';
+        }
+        
+        // Game loop
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Initialize game
+        initStars();
+        generateLevel(1);
+        updateUI();
+        gameLoop();
+    </script>
+</body>
+</html>
