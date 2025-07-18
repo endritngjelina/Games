@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High Card Poker - Casino Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card {
+            width: 120px;
+            height: 170px;
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .card-back {
+            background: linear-gradient(45deg, #1e40af, #3b82f6, #60a5fa);
+            background-size: 200% 200%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .card-suit {
+            font-size: 2rem;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .red-suit { color: #dc2626; }
+        .black-suit { color: #1f2937; }
+        
+        .card-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .flip-card {
+            animation: flipCard 0.6s ease-in-out;
+        }
+        
+        @keyframes flipCard {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(90deg); }
+            100% { transform: rotateY(0deg); }
+        }
+        
+        .casino-bg {
+            background: radial-gradient(circle at center, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        
+        .neon-text {
+            text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24, 0 0 30px #fbbf24;
+        }
+        
+        .chip {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 3px solid rgba(255,255,255,0.3);
+        }
+        
+        .chip:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+        
+        .chip-5 { background: linear-gradient(45deg, #dc2626, #ef4444); }
+        .chip-10 { background: linear-gradient(45deg, #2563eb, #3b82f6); }
+        .chip-25 { background: linear-gradient(45deg, #16a34a, #22c55e); }
+        .chip-50 { background: linear-gradient(45deg, #7c3aed, #8b5cf6); }
+        
+        .pulse-win {
+            animation: pulseWin 1s ease-in-out;
+        }
+        
+        @keyframes pulseWin {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body class="casino-bg text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold neon-text mb-4">🎰 HIGH CARD POKER 🎰</h1>
+            <p class="text-xl text-gray-300">Beat the dealer's card to win!</p>
+        </div>
+        
+        <!-- Game Stats -->
+        <div class="flex justify-center gap-8 mb-8">
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-green-400" id="balance">$1000</div>
+                <div class="text-sm text-gray-400">Balance</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-yellow-400" id="currentBet">$0</div>
+                <div class="text-sm text-gray-400">Current Bet</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-400" id="wins">0</div>
+                <div class="text-sm text-gray-400">Wins</div>
+            </div>
+        </div>
+        
+        <!-- Betting Chips -->
+        <div class="text-center mb-8">
+            <h3 class="text-xl mb-4">Place Your Bet</h3>
+            <div class="flex justify-center gap-4">
+                <div class="chip chip-5" onclick="placeBet(5)">$5</div>
+                <div class="chip chip-10" onclick="placeBet(10)">$10</div>
+                <div class="chip chip-25" onclick="placeBet(25)">$25</div>
+                <div class="chip chip-50" onclick="placeBet(50)">$50</div>
+            </div>
+            <button onclick="clearBet()" class="mt-4 bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg transition-colors">
+                Clear Bet
+            </button>
+        </div>
+        
+        <!-- Game Area -->
+        <div class="max-w-4xl mx-auto">
+            <!-- Cards Display -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <!-- Player Card -->
+                <div class="text-center">
+                    <h3 class="text-2xl mb-4 text-blue-400">Your Card</h3>
+                    <div class="flex justify-center">
+                        <div id="playerCard" class="card card-back">
+                            <div class="text-white text-center text-4xl">🂠</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dealer Card -->
+                <div class="text-center">
+                    <h3 class="text-2xl mb-4 text-red-400">Dealer's Card</h3>
+                    <div class="flex justify-center">
+                        <div id="dealerCard" class="card card-back">
+                            <div class="text-white text-center text-4xl">🂠</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Game Controls -->
+            <div class="text-center mb-8">
+                <button id="dealBtn" onclick="dealCards()" 
+                        class="bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold px-8 py-4 rounded-lg text-xl hover:from-yellow-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    DEAL CARDS
+                </button>
+            </div>
+            
+            <!-- Game Message -->
+            <div id="gameMessage" class="text-center text-2xl font-bold mb-4 h-8"></div>
+        </div>
+        
+        <!-- Rules -->
+        <div class="max-w-2xl mx-auto mt-12 bg-gray-800 rounded-lg p-6">
+            <h3 class="text-xl font-bold mb-4 text-center">How to Play</h3>
+            <ul class="text-gray-300 space-y-2">
+                <li>• Place your bet using the chips above</li>
+                <li>• Click "DEAL CARDS" to reveal both cards</li>
+                <li>• If your card is higher than the dealer's card, you win 2x your bet</li>
+                <li>• If cards are equal, it's a tie and you keep your bet</li>
+                <li>• If dealer's card is higher, you lose your bet</li>
+                <li>• Ace is high (14), King is 13, Queen is 12, Jack is 11</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let balance = 1000;
+        let currentBet = 0;
+        let wins = 0;
+        let gameInProgress = false;
+        
+        const suits = ['♠', '♥', '♦', '♣'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        const valueMap = {'A': 14, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13};
+        
+        function updateDisplay() {
+            document.getElementById('balance').textContent = `$${balance}`;
+            document.getElementById('currentBet').textContent = `$${currentBet}`;
+            document.getElementById('wins').textContent = wins;
+        }
+        
+        function placeBet(amount) {
+            if (gameInProgress) return;
+            
+            if (balance >= amount) {
+                currentBet += amount;
+                balance -= amount;
+                updateDisplay();
+                
+                // Enable deal button if bet is placed
+                document.getElementById('dealBtn').disabled = false;
+            } else {
+                showMessage('Not enough balance!', 'text-red-500');
+            }
+        }
+        
+        function clearBet() {
+            if (gameInProgress) return;
+            
+            balance += currentBet;
+            currentBet = 0;
+            updateDisplay();
+            document.getElementById('dealBtn').disabled = true;
+            showMessage('Bet cleared', 'text-yellow-500');
+        }
+        
+        function createCard(value, suit) {
+            const suitColor = (suit === '♥' || suit === '♦') ? 'red-suit' : 'black-suit';
+            return `
+                <div class="card-value ${suitColor}">${value}</div>
+                <div class="card-suit ${suitColor}">${suit}</div>
+                <div class="card-value ${suitColor}" style="transform: rotate(180deg);">${value}</div>
+            `;
+        }
+        
+        function getRandomCard() {
+            const suit = suits[Math.floor(Math.random() * suits.length)];
+            const value = values[Math.floor(Math.random() * values.length)];
+            return { value, suit, numericValue: valueMap[value] };
+        }
+        
+        function dealCards() {
+            if (currentBet === 0) {
+                showMessage('Place a bet first!', 'text-red-500');
+                return;
+            }
+            
+            gameInProgress = true;
+            document.getElementById('dealBtn').disabled = true;
+            
+            // Get random cards
+            const playerCard = getRandomCard();
+            const dealerCard = getRandomCard();
+            
+            // Add flip animation
+            document.getElementById('playerCard').classList.add('flip-card');
+            document.getElementById('dealerCard').classList.add('flip-card');
+            
+            // Reveal cards after animation
+            setTimeout(() => {
+                // Player card
+                const playerCardEl = document.getElementById('playerCard');
+                playerCardEl.className = 'card';
+                playerCardEl.innerHTML = createCard(playerCard.value, playerCard.suit);
+                
+                // Dealer card
+                const dealerCardEl = document.getElementById('dealerCard');
+                dealerCardEl.className = 'card';
+                dealerCardEl.innerHTML = createCard(dealerCard.value, dealerCard.suit);
+                
+                // Determine winner
+                setTimeout(() => {
+                    determineWinner(playerCard, dealerCard);
+                }, 500);
+                
+            }, 300);
+        }
+        
+        function determineWinner(playerCard, dealerCard) {
+            let message = '';
+            let messageClass = '';
+            
+            if (playerCard.numericValue > dealerCard.numericValue) {
+                // Player wins
+                const winnings = currentBet * 2;
+                balance += winnings;
+                wins++;
+                message = `You Win! +$${winnings}`;
+                messageClass = 'text-green-500 pulse-win';
+                
+                // Add win animation to player card
+                document.getElementById('playerCard').classList.add('pulse-win');
+                
+            } else if (playerCard.numericValue < dealerCard.numericValue) {
+                // Dealer wins
+                message = `Dealer Wins! -$${currentBet}`;
+                messageClass = 'text-red-500';
+                
+            } else {
+                // Tie
+                balance += currentBet;
+                message = 'It\'s a Tie! Bet returned';
+                messageClass = 'text-yellow-500';
+            }
+            
+            showMessage(message, messageClass);
+            currentBet = 0;
+            updateDisplay();
+            
+            // Reset for next round
+            setTimeout(() => {
+                resetGame();
+            }, 3000);
+        }
+        
+        function resetGame() {
+            gameInProgress = false;
+            
+            // Reset cards to back
+            const playerCardEl = document.getElementById('playerCard');
+            const dealerCardEl = document.getElementById('dealerCard');
+            
+            playerCardEl.className = 'card card-back';
+            playerCardEl.innerHTML = '<div class="text-white text-center text-4xl">🂠</div>';
+            
+            dealerCardEl.className = 'card card-back';
+            dealerCardEl.innerHTML = '<div class="text-white text-center text-4xl">🂠</div>';
+            
+            // Enable deal button only if balance > 0
+            document.getElementById('dealBtn').disabled = balance === 0;
+            
+            showMessage('Place your bet to play again!', 'text-blue-400');
+            
+            // Check if player is broke
+            if (balance === 0 && currentBet === 0) {
+                showMessage('Game Over! Refresh to play again.', 'text-red-500');
+            }
+        }
+        
+        function showMessage(text, className) {
+            const messageEl = document.getElementById('gameMessage');
+            messageEl.textContent = text;
+            messageEl.className = `text-center text-2xl font-bold mb-4 h-8 ${className}`;
+        }
+        
+        // Initialize game
+        updateDisplay();
+        document.getElementById('dealBtn').disabled = true;
+        showMessage('Place your bet to start!', 'text-blue-400');
+    </script>
+</body>
+</html>
