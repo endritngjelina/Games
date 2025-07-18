@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Sevens Casino Deluxe</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e, #0f3460);
+            background-size: 400% 400%;
+            animation: backgroundShift 15s ease infinite;
+            min-height: 100vh;
+            font-family: 'Orbitron', monospace;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .casino-container {
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 25px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), 
+                        inset 0 0 0 2px rgba(255, 215, 0, 0.3);
+            backdrop-filter: blur(20px);
+            border: 3px solid transparent;
+            background-clip: padding-box;
+            position: relative;
+        }
+
+        .casino-container::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b, #4ecdc4, #ffd700);
+            border-radius: 25px;
+            z-index: -1;
+            animation: borderGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes borderGlow {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .dice {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(145deg, #ffffff, #e0e0e0);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4),
+                        inset 0 2px 5px rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            margin: 15px;
+            position: relative;
+        }
+
+        .dice::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            border-radius: 25px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .dice.rolling {
+            animation: advancedRoll 1.5s ease-in-out;
+        }
+
+        .dice.winner::before {
+            opacity: 1;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes advancedRoll {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(180deg) scale(1.2); }
+            50% { transform: rotate(360deg) scale(0.8); }
+            75% { transform: rotate(540deg) scale(1.1); }
+            100% { transform: rotate(720deg) scale(1); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .bet-button {
+            background: linear-gradient(145deg, #ff6b6b, #ff5252);
+            border: none;
+            color: white;
+            padding: 20px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            margin: 8px;
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .bet-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .bet-button:hover::before {
+            left: 100%;
+        }
+
+        .bet-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(255, 107, 107, 0.6);
+        }
+
+        .bet-button.active {
+            background: linear-gradient(145deg, #4ecdc4, #26a69a);
+            box-shadow: 0 8px 20px rgba(78, 205, 196, 0.4);
+            animation: activeGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes activeGlow {
+            0%, 100% { box-shadow: 0 8px 20px rgba(78, 205, 196, 0.4); }
+            50% { box-shadow: 0 12px 30px rgba(78, 205, 196, 0.8); }
+        }
+
+        .chips {
+            background: linear-gradient(145deg, #ffd700, #ffc107);
+            color: #333;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 4px solid #fff;
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chips::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), transparent);
+            border-radius: 50%;
+        }
+
+        .chips:hover {
+            transform: scale(1.15) rotate(10deg);
+            box-shadow: 0 12px 30px rgba(255, 215, 0, 0.6);
+        }
+
+        .chips.selected {
+            background: linear-gradient(145deg, #ff6b6b, #ff5252);
+            color: #fff;
+            animation: chipSelected 0.5s ease;
+        }
+
+        @keyframes chipSelected {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .roll-btn {
+            background: linear-gradient(145deg, #ffd700, #ffed4e);
+            color: #333;
+            border: none;
+            padding: 25px 50px;
+            font-size: 1.8rem;
+            font-weight: 900;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(255, 215, 0, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .roll-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: spin 2s linear infinite;
+            opacity: 0;
+        }
+
+        .roll-btn:hover::before {
+            opacity: 1;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .roll-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.6);
+        }
+
+        .roll-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .game-title {
+            background: linear-gradient(45deg, #ffd700, #ffed4e, #ffd700);
+            background-size: 200% 200%;
+            animation: titleShine 3s ease-in-out infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 4rem;
+            font-weight: 900;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            letter-spacing: 3px;
+        }
+
+        @keyframes titleShine {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .balance {
+            background: linear-gradient(145deg, #4ecdc4, #26a69a);
+            padding: 20px 30px;
+            border-radius: 20px;
+            font-size: 1.8rem;
+            font-weight: 900;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(78, 205, 196, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: balanceShine 3s ease-in-out infinite;
+        }
+
+        @keyframes balanceShine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .result-win {
+            color: #4ecdc4;
+            font-weight: 900;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(78, 205, 196, 0.8);
+            animation: winAnimation 1s ease-in-out;
+        }
+
+        .result-lose {
+            color: #ff6b6b;
+            font-weight: 900;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+            animation: loseAnimation 1s ease-in-out;
+        }
+
+        @keyframes winAnimation {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes loseAnimation {
+            0%, 100% { transform: scale(1); }
+            25%, 75% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+        }
+
+        .payout-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 6px solid #ffd700;
+            backdrop-filter: blur(10px);
+        }
+
+        .streak-counter {
+            background: linear-gradient(145deg, #ff6b6b, #ff5252);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .multiplier {
+            background: linear-gradient(145deg, #9c27b0, #7b1fa2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px;
+            animation: multiplierPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes multiplierPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .sound-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffd700;
+            border: 2px solid #ffd700;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sound-toggle:hover {
+            background: #ffd700;
+            color: #000;
+            transform: scale(1.1);
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #ffd700;
+            animation: confettiFall 3s linear infinite;
+            z-index: 1000;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .total-display {
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        @media (max-width: 768px) {
+            .game-title { font-size: 2.5rem; }
+            .dice { width: 80px; height: 80px; font-size: 2rem; }
+            .roll-btn { padding: 20px 30px; font-size: 1.4rem; }
+            .chips { width: 60px; height: 60px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sound Toggle -->
+    <div class="sound-toggle" id="soundToggle" title="Toggle Sound">
+        <i class="fas fa-volume-up"></i>
+    </div>
+
+    <div class="container-fluid py-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-11">
+                <div class="casino-container p-4">
+                    <div class="text-center mb-4">
+                        <h1 class="game-title">🎲 LUCKY SEVENS DELUXE 🎲</h1>
+                        <p class="lead">The Ultimate Dice Casino Experience!</p>
+                    </div>
+
+                    <div class="row">
+                        <!-- Game Area -->
+                        <div class="col-md-8">
+                            <!-- Dice Display -->
+                            <div class="text-center mb-4">
+                                <div class="d-flex justify-content-center align-items-center">
+                                    <div class="dice" id="dice1">?</div>
+                                    <div class="dice" id="dice2">?</div>
+                                </div>
+                                <div class="mt-3">
+                                    <h2 class="total-display" id="total">Total: --</h2>
+                                </div>
+                            </div>
+
+                            <!-- Betting Options -->
+                            <div class="mb-4">
+                                <h4 class="text-center mb-3">🎯 Place Your Bets 🎯</h4>
+                                <div class="row text-center">
+                                    <div class="col-6 col-lg-3 mb-3">
+                                        <button class="bet-button w-100" data-bet="lucky7">
+                                            <i class="fas fa-star"></i> Lucky 7<br><small>6:1 payout</small>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-lg-3 mb-3">
+                                        <button class="bet-button w-100" data-bet="high">
+                                            <i class="fas fa-arrow-up"></i> High (8-12)<br><small>1:1 payout</small>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-lg-3 mb-3">
+                                        <button class="bet-button w-100" data-bet="low">
+                                            <i class="fas fa-arrow-down"></i> Low (2-6)<br><small>1:1 payout</small>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-lg-3 mb-3">
+                                        <button class="bet-button w-100" data-bet="doubles">
+                                            <i class="fas fa-copy"></i> Doubles<br><small>4:1 payout</small>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-lg-3 mb-3">
+                                        <button class="bet-button w-100" data-bet="snake_eyes">
+                                            <i class="fas fa-eye"></i> Snake Eyes<br><small>30:1 payout</small>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-lg-3 mb-3">
+                                        <button class="bet-button w-100" data-bet="boxcars">
+                                            <i class="fas fa-truck"></i> Boxcars<br><small>30:1 payout</small>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-lg-3 mb-3">
+                                        <button class="bet-button w-100" data-bet="hard_way">
+                                            <i class="fas fa-diamond"></i> Hard Way<br><small>8:1 payout</small>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-lg-3 mb-3">
+                                        <button class="bet-button w-100" data-bet="even">
+                                            <i class="fas fa-balance-scale"></i> Even<br><small>1:1 payout</small>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Roll Button -->
+                            <div class="text-center">
+                                <button class="roll-btn" id="rollBtn" disabled>
+                                    🎲 ROLL THE DICE 🎲
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar -->
+                        <div class="col-md-4">
+                            <!-- Balance -->
+                            <div class="balance mb-4">
+                                💰 Balance: $<span id="balance">2500</span>
+                            </div>
+
+                            <!-- Win Streak -->
+                            <div class="streak-counter mb-4">
+                                🔥 Win Streak: <span id="winStreak">0</span>
+                                <div id="multiplierDisplay"></div>
+                            </div>
+
+                            <!-- Bet Amount -->
+                            <div class="mb-4">
+                                <h5><i class="fas fa-coins"></i> Select Bet Amount</h5>
+                                <div class="d-flex flex-wrap justify-content-center">
+                                    <div class="chips" data-amount="25">$25</div>
+                                    <div class="chips" data-amount="50">$50</div>
+                                    <div class="chips selected" data-amount="100">$100</div>
+                                    <div class="chips" data-amount="250">$250</div>
+                                </div>
+                                <div class="text-center mt-2">
+                                    <button class="btn btn-outline-warning btn-sm" id="maxBet">MAX BET</button>
+                                    <button class="btn btn-outline-info btn-sm" id="clearBets">CLEAR ALL</button>
+                                </div>
+                            </div>
+
+                            <!-- Current Bets -->
+                            <div class="mb-4">
+                                <h5><i class="fas fa-list"></i> Current Bets</h5>
+                                <div id="currentBets" class="text-center">
+                                    <p class="text-muted">No bets placed</p>
+                                </div>
+                                <div class="text-center">
+                                    <strong>Total Bet: $<span id="totalBetAmount">0</span></strong>
+                                </div>
+                            </div>
+
+                            <!-- Game Result -->
+                            <div class="mb-4">
+                                <h5><i class="fas fa-trophy"></i> Last Result</h5>
+                                <div id="gameResult" class="text-center">
+                                    <p class="text-muted">Roll to see result</p>
+                                </div>
+                            </div>
+
+                            <!-- Statistics -->
+                            <div class="mb-4">
+                                <h5><i class="fas fa-chart-bar"></i> Statistics</h5>
+                                <div class="text-center">
+                                    <div>Games Played: <span id="gamesPlayed">0</span></div>
+                                    <div>Total Won: $<span id="totalWon">0</span></div>
+                                    <div>Best Streak: <span id="bestStreak">0</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Payout Info -->
+                            <div class="payout-info">
+                                <h6><i class="fas fa-info-circle"></i> Payout Guide:</h6>
+                                <small>
+                                    • Snake Eyes (1,1): 30:1<br>
+                                    • Boxcars (6,6): 30:1<br>
+                                    • Hard Way (4,4|3,3): 8:1<br>
+                                    • Lucky 7: 6:1<br>
+                                    • Doubles: 4:1<br>
+                                    • High/Low/Even: 1:1
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let balance = 2500;
+        let currentBets = {};
+        let selectedAmount = 100;
+        let isRolling = false;
+        let soundEnabled = true;
+        let winStreak = 0;
+        let bestStreak = 0;
+        let gamesPlayed = 0;
+        let totalWon = 0;
+
+        const dice1 = document.getElementById('dice1');
+        const dice2 = document.getElementById('dice2');
+        const totalElement = document.getElementById('total');
+        const balanceElement = document.getElementById('balance');
+        const rollBtn = document.getElementById('rollBtn');
+        const currentBetsElement = document.getElementById('currentBets');
+        const gameResultElement = document.getElementById('gameResult');
+        const winStreakElement = document.getElementById('winStreak');
+        const multiplierDisplay = document.getElementById('multiplierDisplay');
+        const totalBetElement = document.getElementById('totalBetAmount');
+        const soundToggle = document.getElementById('soundToggle');
+
+        // Sound effects (using Web Audio API)
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(frequency, duration, type = 'sine') {
+            if (!soundEnabled) return;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function createConfetti() {
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.background = ['#ffd700', '#ff6b6b', '#4ecdc4', '#9c27b0'][Math.floor(Math.random() * 4)];
+                    confetti.style.animationDelay = Math.random() * 2 + 's';
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 50);
+            }
+        }
+
+        // Helper function to get payout ratio
+        function getPayoutRatio(betType) {
+            const ratios = {
+                lucky7: 6,
+                high: 1,
+                low: 1,
+                doubles: 4,
+                snake_eyes: 30,
+                boxcars: 30,
+                hard_way: 8,
+                even: 1
+            };
+            return ratios[betType] || 0;
+        }
+
+        // Helper function to check if bet wins
+        function checkBetWin(betType, dice1, dice2) {
+            const total = dice1 + dice2;
+            switch(betType) {
+                case 'lucky7': return total === 7;
+                case 'high': return total >= 8 && total <= 12;
+                case 'low': return total >= 2 && total <= 6;
+                case 'doubles': return dice1 === dice2;
+                case 'snake_eyes': return dice1 === 1 && dice2 === 1;
+                case 'boxcars': return dice1 === 6 && dice2 === 6;
+                case 'hard_way': 
+                    return (dice1 === 3 && dice2 === 3) || (dice1 === 4 && dice2 === 4);
+                case 'even': return total % 2 === 0;
+                default: return false;
+            }
+        }
+
+        // Sound toggle
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundToggle.innerHTML = soundEnabled ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-volume-mute"></i>';
+            playSound(soundEnabled ? 800 : 400, 0.2);
+        });
+
+        // Chip selection
+        document.querySelectorAll('.chips').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.chips').forEach(c => c.classList.remove('selected'));
+                chip.classList.add('selected');
+                selectedAmount = parseInt(chip.dataset.amount);
+                playSound(600, 0.1);
+            });
+        });
+
+        // Max bet button
+        document.getElementById('maxBet').addEventListener('click', () => {
+            const maxAmount = Math.min(balance, 250);
+            document.querySelectorAll('.chips').forEach(c => c.classList.remove('selected'));
+            selectedAmount = maxAmount;
+            playSound(800, 0.2);
+        });
+
+        // Clear bets button
+        document.getElementById('clearBets').addEventListener('click', () => {
+            // Return bet money to balance
+            const totalBetAmount = Object.values(currentBets).reduce((sum, amount) => sum + amount, 0);
+            balance += totalBetAmount;
+            
+            currentBets = {};
+            document.querySelectorAll('.bet-button').forEach(btn => btn.classList.remove('active'));
+            updateDisplay();
+            playSound(400, 0.3);
+        });
+
+        // Bet buttons
+        document.querySelectorAll('.bet-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const betType = button.dataset.bet;
+                
+                if (balance >= selectedAmount) {
+                    if (!currentBets[betType]) {
+                        currentBets[betType] = 0;
+                    }
+                    currentBets[betType] += selectedAmount;
+                    balance -= selectedAmount;
+                    
+                    button.classList.add('active');
+                    updateDisplay();
+                    playSound(700, 0.15);
+                } else {
+                    playSound(200, 0.5, 'sawtooth');
+                    alert('💸 Insufficient balance! 💸');
+                }
+            });
+        });
+
+        // Roll button
+        rollBtn.addEventListener('click', rollDice);
+
+        function updateDisplay() {
+            balanceElement.textContent = balance;
+            winStreakElement.textContent = winStreak;
+            document.getElementById('gamesPlayed').textContent = gamesPlayed;
+            document.getElementById('totalWon').textContent = totalWon;
+            document.getElementById('bestStreak').textContent = bestStreak;
+            
+            // Update multiplier display
+            const multiplier = Math.floor(winStreak / 3) + 1;
+            if (multiplier > 1) {
+                multiplierDisplay.innerHTML = `<div class="multiplier">${multiplier}x MULTIPLIER!</div>`;
+            } else {
+                multiplierDisplay.innerHTML = '';
+            }
+            
+            // Update current bets display
+            if (Object.keys(currentBets).length === 0) {
+                currentBetsElement.innerHTML = '<p class="text-muted">No bets placed</p>';
+                rollBtn.disabled = true;
+                totalBetElement.textContent = '0';
+            } else {
+                let betsHtml = '';
+                let totalBetAmount = 0;
+                for (const [betType, amount] of Object.entries(currentBets)) {
+                    betsHtml += `<div class="mb-1"><i class="fas fa-dice"></i> ${betType.replace('_', ' ').toUpperCase()}: $${amount}</div>`;
+                    totalBetAmount += amount;
+                }
+                currentBetsElement.innerHTML = betsHtml;
+                totalBetElement.textContent = totalBetAmount;
+                rollBtn.disabled = false;
+            }
+        }
+
+        function rollDice() {
+            if (isRolling) return;
+            isRolling = true;
+            rollBtn.disabled = true;
+            gamesPlayed++;
+
+            // Add rolling animation
+            dice1.classList.add('rolling');
+            dice2.classList.add('rolling');
+
+            // Play rolling sound
+            playSound(300, 0.1);
+            setTimeout(() => playSound(350, 0.1), 200);
+            setTimeout(() => playSound(400, 0.1), 400);
+
+            // Simulate rolling animation
+            const rollInterval = setInterval(() => {
+                dice1.textContent = Math.floor(Math.random() * 6) + 1;
+                dice2.textContent = Math.floor(Math.random() * 6) + 1;
+            }, 100);
+
+            // After 1.5 seconds, stop rolling and show results
+            setTimeout(() => {
+                clearInterval(rollInterval);
+                dice1.classList.remove('rolling');
+                dice2.classList.remove('rolling');
+
+                // Generate final dice values
+                const dice1Val = Math.floor(Math.random() * 6) + 1;
+                const dice2Val = Math.floor(Math.random() * 6) + 1;
+                const totalVal = dice1Val + dice2Val;
+
+                dice1.textContent = dice1Val;
+                dice2.textContent = dice2Val;
+                totalElement.textContent = `Total: ${totalVal}`;
+
+                // Calculate base net profit and check for any win
+                let baseNetProfit = 0;
+                let wonAny = false;
+                for (const [betType, amount] of Object.entries(currentBets)) {
+                    if (checkBetWin(betType, dice1Val, dice2Val)) {
+                        const ratio = getPayoutRatio(betType);
+                        baseNetProfit += amount * ratio;
+                        wonAny = true;
+                    }
+                }
+
+                // Update win streak and calculate multiplier
+                let multiplier = 1;
+                if (wonAny) {
+                    multiplier = Math.floor(winStreak / 3) + 1;
+                    winStreak++;
+                    if (winStreak > bestStreak) bestStreak = winStreak;
+                } else {
+                    winStreak = 0;
+                }
+
+                const netProfit = baseNetProfit * multiplier;
+
+                // Update balance and totalWon
+                balance += netProfit;
+                totalWon += netProfit;
+
+                // Display result
+                let resultHtml = '';
+                if (netProfit > 0) {
+                    resultHtml = `<div class="result-win">WIN! +$${netProfit}</div>`;
+                    playSound(1200, 0.5);
+                    createConfetti();
+                } else if (netProfit < 0) {
+                    resultHtml = `<div class="result-lose">LOSE! $${netProfit}</div>`;
+                    playSound(200, 1, 'sawtooth');
+                } else {
+                    resultHtml = `<div>PUSH! No win, no loss.</div>`;
+                }
+                resultHtml += `<div>Dice: ${dice1Val} and ${dice2Val}</div>`;
+                if (multiplier > 1) {
+                    resultHtml += `<div>Multiplier: ${multiplier}x</div>`;
+                }
+                gameResultElement.innerHTML = resultHtml;
+
+                // Clear current bets
+                currentBets = {};
+                document.querySelectorAll('.bet-button').forEach(btn => btn.classList.remove('active'));
+
+                // Update display
+                updateDisplay();
+
+                // Re-enable rolling
+                isRolling = false;
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
