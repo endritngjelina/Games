@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enhanced 8-Puzzle Solver</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    /* Animated background elements */
+    .bg-elements {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+    
+    .bg-element {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.15;
+      animation: float 15s infinite linear;
+      filter: blur(2px);
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(0) translateX(0) rotate(0deg); }
+      50% { transform: translateY(-50px) translateX(50px) rotate(180deg); }
+      100% { transform: translateY(0) translateX(0) rotate(360deg); }
+    }
+    
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+    
+    header {
+      text-align: center;
+      padding: 20px 0;
+      margin-bottom: 20px;
+      animation: fadeInDown 1s ease-out;
+    }
+    
+    h1 {
+      font-size: 3.5rem;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      background: linear-gradient(45deg, #ffcc00, #ff6b6b, #9b59b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+    
+    .subtitle {
+      font-size: 1.3rem;
+      max-width: 700px;
+      margin: 0 auto 20px;
+      line-height: 1.6;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      animation: fadeIn 1.5s ease-out;
+    }
+    
+    .game-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 40px;
+      margin-bottom: 30px;
+      animation: slideInUp 1s ease-out;
+    }
+    
+    .board-container {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      position: relative;
+      transition: all 0.4s ease;
+    }
+    
+    .board-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    .board-title {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      color: #ffcc00;
+      text-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+      font-weight: 600;
+    }
+    
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 300px;
+      height: 300px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .board.solved {
+      box-shadow: 0 0 25px rgba(0, 255, 157, 0.5);
+      animation: pulseGlow 2s infinite;
+    }
+    
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 15px rgba(0, 255, 157, 0.4); }
+      50% { box-shadow: 0 0 30px rgba(0, 255, 157, 0.7); }
+      100% { box-shadow: 0 0 15px rgba(0, 255, 157, 0.4); }
+    }
+    
+    .tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #3498db, #2980b9);
+      border-radius: 8px;
+      font-size: 2.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+      user-select: none;
+      transform: translateZ(0);
+      perspective: 1000px;
+      position: relative;
+      overflow: hidden;
+      color: white;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .tile::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .tile:hover {
+      transform: scale(1.05) translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      z-index: 2;
+    }
+    
+    .tile:hover::before {
+      opacity: 1;
+    }
+    
+    .tile.moving {
+      animation: slide 0.4s ease-out forwards;
+      z-index: 10;
+    }
+    
+    @keyframes slide {
+      from { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      to { transform: scale(1); }
+    }
+    
+    .empty {
+      background: rgba(0, 0, 0, 0.25);
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.4);
+      cursor: default;
+    }
+    
+    .empty:hover {
+      transform: none;
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+      margin-bottom: 20px;
+      animation: fadeInUp 1s ease-out;
+    }
+    
+    .btn {
+      padding: 16px 35px;
+      font-size: 1.2rem;
+      background: linear-gradient(45deg, #ff6b6b, #ffcc00);
+      border: none;
+      border-radius: 50px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+      min-width: 200px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      letter-spacing: 1px;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: 0.5s;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(255, 107, 107, 0.6);
+    }
+    
+    .btn.randomize {
+      background: linear-gradient(45deg, #9b59b6, #1abc9c);
+      box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+    }
+    
+    .btn.randomize:hover {
+      box-shadow: 0 10px 25px rgba(155, 89, 182, 0.6);
+    }
+    
+    .btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+    
+    .btn:disabled {
+      background: #7f8c8d;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      opacity: 0.7;
+    }
+    
+    .solution-container {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 30px;
+      margin-top: 20px;
+      width: 100%;
+      display: none;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      animation: fadeIn 0.8s ease-out;
+    }
+    
+    .solution-title {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 25px;
+      color: #00ff9d;
+      text-shadow: 0 0 15px rgba(0, 255, 157, 0.4);
+      font-weight: 600;
+    }
+    
+    .solution-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+    
+    .step {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      transform: translateY(0);
+    }
+    
+    .step:hover {
+      background: rgba(52, 152, 219, 0.7);
+      transform: translateY(-5px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    .step.active {
+      background: #3498db;
+      transform: scale(1.1);
+      box-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 15px;
+      font-size: 1.1rem;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+      flex: 1;
+      position: relative;
+    }
+    
+    .stat-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 60%;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #ffcc00;
+      text-shadow: 0 0 8px rgba(255, 204, 0, 0.3);
+      margin-top: 5px;
+      display: block;
+    }
+    
+    .instructions {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 25px;
+      border-radius: 20px;
+      margin-top: 30px;
+      max-width: 900px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      animation: fadeInUp 1s ease-out;
+    }
+    
+    .instructions h3 {
+      color: #3498db;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 1.8rem;
+      text-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+    }
+    
+    .instructions ul {
+      padding-left: 30px;
+      margin-bottom: 20px;
+    }
+    
+    .instructions li {
+      margin-bottom: 12px;
+      line-height: 1.6;
+      position: relative;
+      padding-left: 20px;
+    }
+    
+    .instructions li::before {
+      content: '•';
+      color: #ffcc00;
+      position: absolute;
+      left: 0;
+      top: 0;
+      font-size: 1.5rem;
+    }
+    
+    .instructions p {
+      line-height: 1.6;
+      margin-top: 15px;
+      text-align: center;
+    }
+    
+    .status-indicator {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .solvable {
+      background-color: rgba(46, 204, 113, 0.25);
+      color: #2ecc71;
+      border: 1px solid rgba(46, 204, 113, 0.4);
+    }
+    
+    .unsolvable {
+      background-color: rgba(231, 76, 60, 0.25);
+      color: #e74c3c;
+      border: 1px solid rgba(231, 76, 60, 0.4);
+    }
+    
+    .shuffle-count {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      font-size: 1rem;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 6px 15px;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Confetti container */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2.5rem;
+      }
+      
+      .subtitle {
+        font-size: 1.1rem;
+      }
+      
+      .game-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+      }
+      
+      .board {
+        width: 270px;
+        height: 270px;
+      }
+      
+      .tile {
+        font-size: 2.2rem;
+      }
+      
+      .controls {
+        gap: 15px;
+      }
+      
+      .btn {
+        padding: 14px 25px;
+        font-size: 1.1rem;
+        min-width: 160px;
+      }
+      
+      .stats {
+        flex-direction: column;
+        gap: 15px;
+      }
+      
+      .stat-item:not(:last-child)::after {
+        display: none;
+      }
+    }
+    
+    /* Loading spinner */
+    .spinner {
+      display: none;
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-elements" id="bg-elements"></div>
+  <canvas id="confetti-canvas"></canvas>
+  
+  <div class="container">
+    <header>
+      <h1>Enhanced 8-Puzzle Solver</h1>
+      <p class="subtitle">Solve randomized sliding puzzles using AI. The solver uses A* search with Manhattan distance heuristic to find optimal solutions.</p>
+    </header>
+    
+    <div class="game-container">
+      <div class="board-container">
+        <h2 class="board-title">Start State</h2>
+        <div class="status-indicator solvable" id="solvable-indicator">Solvable</div>
+        <div class="shuffle-count" id="shuffle-count">Shuffle: 0 moves</div>
+        <div class="board" id="start-board">
+          <!-- Start state tiles will be inserted here -->
+        </div>
+      </div>
+      
+      <div class="board-container">
+        <h2 class="board-title">Goal State</h2>
+        <div class="board" id="goal-board">
+          <!-- Goal state tiles will be inserted here -->
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button class="btn randomize" id="randomize-btn">
+        <i class="fas fa-random"></i> Randomize Puzzle
+      </button>
+      <button class="btn" id="solve-btn">
+        <i class="fas fa-cogs"></i> Solve Puzzle
+      </button>
+      <button class="btn" id="reset-btn" disabled>
+        <i class="fas fa-undo"></i> Reset Puzzle
+      </button>
+    </div>
+    
+    <div class="spinner" id="spinner"></div>
+    
+    <div class="solution-container" id="solution-container">
+      <h2 class="solution-title">Solution Path</h2>
+      <div class="solution-steps" id="solution-steps">
+        <!-- Solution steps will be inserted here -->
+      </div>
+      
+      <div class="stats">
+        <div class="stat-item">
+          <div>Total Moves</div>
+          <span class="stat-value" id="total-moves">0</span>
+        </div>
+        <div class="stat-item">
+          <div>States Explored</div>
+          <span class="stat-value" id="states-explored">0</span>
+        </div>
+        <div class="stat-item">
+          <div>Solving Time</div>
+          <span class="stat-value" id="solving-time">0ms</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="instructions">
+      <h3>How to Play</h3>
+      <ul>
+        <li>The goal is to arrange tiles in numerical order with the empty space in the bottom-right corner</li>
+        <li>Click the <strong>Randomize</strong> button to generate a new puzzle</li>
+        <li>Click on a tile adjacent to the empty space to move it manually</li>
+        <li>Press <strong>Solve Puzzle</strong> to see the AI-powered solution</li>
+        <li>Click on any step in the solution path to see the board state at that step</li>
+        <li>Press <strong>Reset Puzzle</strong> to return to the initial state</li>
+      </ul>
+      <p><strong>Algorithm:</strong> This solver uses the A* search algorithm with Manhattan distance heuristic. The Manhattan distance is the sum of the horizontal and vertical distances each tile is from its goal position.</p>
+    </div>
+  </div>
+  
+  <script>
+    // Game state and configuration
+    const gameState = {
+      startState: [1, 2, 3, 4, 5, 6, 7, 8, null],
+      currentState: [1, 2, 3, 4, 5, 6, 7, 8, null],
+      goalState: [1, 2, 3, 4, 5, 6, 7, 8, null],
+      solution: null,
+      solvingTime: 0,
+      statesExplored: 0,
+      shuffleCount: 0,
+      solvingInProgress: false
+    };
+    
+    // DOM elements
+    const startBoard = document.getElementById('start-board');
+    const goalBoard = document.getElementById('goal-board');
+    const solveBtn = document.getElementById('solve-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const randomizeBtn = document.getElementById('randomize-btn');
+    const solutionContainer = document.getElementById('solution-container');
+    const solutionSteps = document.getElementById('solution-steps');
+    const totalMovesEl = document.getElementById('total-moves');
+    const statesExploredEl = document.getElementById('states-explored');
+    const solvingTimeEl = document.getElementById('solving-time');
+    const solvableIndicator = document.getElementById('solvable-indicator');
+    const shuffleCountEl = document.getElementById('shuffle-count');
+    const spinner = document.getElementById('spinner');
+    const bgElements = document.getElementById('bg-elements');
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    
+    // Create background elements
+    function createBackgroundElements() {
+      const colors = ['#ff6b6b', '#ffcc00', '#3498db', '#9b59b6', '#2ecc71'];
+      for (let i = 0; i < 15; i++) {
+        const element = document.createElement('div');
+        element.classList.add('bg-element');
+        element.style.width = `${Math.random() * 120 + 30}px`;
+        element.style.height = element.style.width;
+        element.style.background = colors[Math.floor(Math.random() * colors.length)];
+        element.style.top = `${Math.random() * 100}%`;
+        element.style.left = `${Math.random() * 100}%`;
+        element.style.animationDuration = `${Math.random() * 20 + 10}s`;
+        element.style.animationDelay = `${Math.random() * 5}s`;
+        bgElements.appendChild(element);
+      }
+    }
+    
+    // Initialize the game boards
+    function initializeBoards() {
+      renderBoard();
+      renderGoalBoard();
+      
+      solutionContainer.style.display = 'none';
+      resetBtn.disabled = true;
+      updateSolvabilityIndicator();
+      createBackgroundElements();
+    }
+    
+    // Render the board based on current state
+    function renderBoard() {
+      startBoard.innerHTML = '';
+      
+      gameState.currentState.forEach((value, index) => {
+        const tile = document.createElement('div');
+        tile.className = 'tile' + (value === null ? ' empty' : '');
+        tile.textContent = value === null ? '' : value;
+        tile.dataset.index = index;
+        
+        if (value !== null) tile.addEventListener('click', () => moveTile(index));
+        
+        startBoard.appendChild(tile);
+      });
+    }
+    
+    // Render the goal board
+    function renderGoalBoard() {
+      goalBoard.innerHTML = '';
+      
+      gameState.goalState.forEach(value => {
+        const tile = document.createElement('div');
+        tile.className = 'tile' + (value === null ? ' empty' : '');
+        tile.textContent = value === null ? '' : value;
+        goalBoard.appendChild(tile);
+      });
+    }
+    
+    // Move a tile to the empty space with animation
+    function moveTile(index) {
+      if (gameState.solvingInProgress) return;
+      
+      const emptyIndex = gameState.currentState.indexOf(null);
+      const row = Math.floor(index / 3);
+      const col = index % 3;
+      const emptyRow = Math.floor(emptyIndex / 3);
+      const emptyCol = emptyIndex % 3;
+      
+      // Check if adjacent
+      const rowDiff = Math.abs(row - emptyRow);
+      const colDiff = Math.abs(col - emptyCol);
+      
+      if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+        // Highlight the moving tile
+        const tiles = startBoard.querySelectorAll('.tile');
+        tiles[index].classList.add('moving');
+        
+        setTimeout(() => {
+          // Swap tile with empty space
+          const newState = [...gameState.currentState];
+          [newState[index], newState[emptyIndex]] = [newState[emptyIndex], newState[index]];
+          gameState.currentState = newState;
+          renderBoard();
+          
+          // Check if puzzle is solved
+          if (isSolved()) {
+            showCelebration();
+            goalBoard.classList.add('solved');
+            setTimeout(() => {
+              alert("Congratulations! You solved the puzzle!");
+            }, 800);
+          }
+        }, 300);
+      }
+    }
+    
+    // Check if puzzle is solved
+    function isSolved() {
+      for (let i = 0; i < gameState.currentState.length; i++) {
+        if (gameState.currentState[i] !== gameState.goalState[i]) return false;
+      }
+      return true;
+    }
+    
+    // Solve the puzzle using A* algorithm
+    function solvePuzzle() {
+      if (gameState.solvingInProgress) return;
+      
+      gameState.solvingInProgress = true;
+      spinner.style.display = 'block';
+      const startTime = performance.now();
+      gameState.solution = null;
+      gameState.statesExplored = 0;
+      
+      // Convert current state to 2D for solver
+      const startState2D = convert1DTo2D(gameState.currentState);
+      const goalState2D = convert1DTo2D(gameState.goalState);
+      
+      // A* Search Algorithm
+      const openSet = [{ state: startState2D, moves: [], cost: 0 }];
+      const closedSet = new Set();
+      
+      while (openSet.length > 0) {
+        // Find node with lowest cost
+        let lowestIndex = 0;
+        for (let i = 1; i < openSet.length; i++) {
+          if (openSet[i].cost + heuristic(openSet[i].state, goalState2D) < 
+              openSet[lowestIndex].cost + heuristic(openSet[lowestIndex].state, goalState2D)) {
+            lowestIndex = i;
+          }
+        }
+        
+        const currentNode = openSet[lowestIndex];
+        gameState.statesExplored++;
+        
+        // Check if goal reached
+        if (isGoalState(currentNode.state, goalState2D)) {
+          const endTime = performance.now();
+          gameState.solvingTime = (endTime - startTime).toFixed(2);
+          gameState.solution = currentNode.moves;
+          spinner.style.display = 'none';
+          displaySolution();
+          gameState.solvingInProgress = false;
+          return;
+        }
+        
+        // Move current node from open to closed
+        openSet.splice(lowestIndex, 1);
+        closedSet.add(stringifyState(currentNode.state));
+        
+        // Generate successors
+        const successors = getSuccessors(currentNode.state);
+        for (const successor of successors) {
+          const stateStr = stringifyState(successor.state);
+          
+          // Skip if already in closed set
+          if (closedSet.has(stateStr)) continue;
+          
+          // Check if already in open set
+          const existingNodeIndex = openSet.findIndex(node => 
+            stringifyState(node.state) === stateStr);
+          
+          const newCost = currentNode.cost + 1;
+          const newMoves = [...currentNode.moves, successor.move];
+          
+          if (existingNodeIndex === -1) {
+            // Add new node to open set
+            openSet.push({
+              state: successor.state,
+              moves: newMoves,
+              cost: newCost
+            });
+          } else if (newCost < openSet[existingNodeIndex].cost) {
+            // Update existing node with better path
+            openSet[existingNodeIndex].cost = newCost;
+            openSet[existingNodeIndex].moves = newMoves;
+          }
+        }
+      }
+      
+      // No solution found
+      spinner.style.display = 'none';
+      gameState.solvingInProgress = false;
+      alert("No solution found! The puzzle may be unsolvable.");
+    }
+    
+    // Manhattan distance heuristic
+    function heuristic(state, goalState) {
+      let distance = 0;
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const value = state[row][col];
+          if (value !== null && value !== 0) {
+            // Find position of this value in goal state
+            let goalRow, goalCol;
+            for (let r = 0; r < 3; r++) {
+              for (let c = 0; c < 3; c++) {
+                if (goalState[r][c] === value) {
+                  goalRow = r;
+                  goalCol = c;
+                  break;
+                }
+              }
+            }
+            distance += Math.abs(row - goalRow) + Math.abs(col - goalCol);
+          }
+        }
+      }
+      return distance;
+    }
+    
+    // Check if current state is goal state
+    function isGoalState(state, goalState) {
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          if (state[row][col] !== goalState[row][col])  return false;
+        }
+      }
+      return true;
+    }
+    
+    // Stringify state for comparison
+    function stringifyState(state) {
+      return JSON.stringify(state);
+    }
+    
+    // Get possible successor states
+    function getSuccessors(state) {
+      const [emptyRow, emptyCol] = findEmptyPosition(state);
+      const successors = [];
+      const directions = [
+        { move: 'up', dRow: -1, dCol: 0 },
+        { move: 'down', dRow: 1, dCol: 0 },
+        { move: 'left', dRow: 0, dCol: -1 },
+        { move: 'right', dRow: 0, dCol: 1 }
+      ];
+      
+      for (const dir of directions) {
+        const newRow = emptyRow + dir.dRow;
+        const newCol = emptyCol + dir.dCol;
+        
+        if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
+          // Create a copy of the state
+          const newState = JSON.parse(JSON.stringify(state));
+          
+          // Swap empty space with adjacent tile
+          newState[emptyRow][emptyCol] = newState[newRow][newCol];
+          newState[newRow][newCol] = null;
+          
+          successors.push({
+            state: newState,
+            move: dir.move
+          });
+        }
+      }
+      
+      return successors;
+    }
+    
+    // Find empty position in a given state
+    function findEmptyPosition(state) {
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          if (state[row][col] === null) return [row, col];
+        }
+      }
+      return [-1, -1]; // Should never happen
+    }
+    
+    // Convert 1D state to 2D
+    function convert1DTo2D(state1D) {
+      const state2D = [];
+      for (let i = 0; i < 3; i++) {
+        const row = [];
+        for (let j = 0; j < 3; j++) row.push(state1D[i * 3 + j]);
+        state2D.push(row);
+      }
+      return state2D;
+    }
+    
+    // Convert 2D state to 1D
+    function convert2DTo1D(state2D) {
+      const state1D = [];
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) state1D.push(state2D[i][j]);
+      }
+      return state1D;
+    }
+    
+    // Display the solution
+    function displaySolution() {
+      solutionContainer.style.display = 'block';
+      solutionSteps.innerHTML = '';
+      
+      totalMovesEl.textContent = gameState.solution.length;
+      statesExploredEl.textContent = gameState.statesExplored;
+      solvingTimeEl.textContent = gameState.solvingTime + 'ms';
+      
+      // Add initial state step
+      const initialStep = document.createElement('div');
+      initialStep.className = 'step active';
+      initialStep.textContent = 'Initial State';
+      initialStep.addEventListener('click', () => showSolutionStep(-1));
+      solutionSteps.appendChild(initialStep);
+      
+      // Add solution steps
+      for (let i = 0; i < gameState.solution.length; i++) {
+        const step = document.createElement('div');
+        step.className = 'step';
+        step.textContent = `Step ${i+1}: ${gameState.solution[i]}`;
+        step.style.animation = `fadeIn 0.5s ease-out ${i * 0.1}s both`;
+        step.addEventListener('click', () => showSolutionStep(i));
+        solutionSteps.appendChild(step);
+      }
+      
+      resetBtn.disabled = false;
+      showCelebration();
+      goalBoard.classList.add('solved');
+    }
+    
+    // Show a specific solution step
+    function showSolutionStep(stepIndex) {
+      // Reset current state to start
+      gameState.currentState = [...gameState.startState];
+      
+      // Apply moves up to the selected step
+      for (let i = 0; i <= stepIndex; i++)  applyMove(gameState.solution[i]);
+      
+      // Update the board
+      renderBoard();
+      
+      // Update active step
+      const steps = solutionSteps.querySelectorAll('.step');
+      steps.forEach((step, i) => {
+        step.classList.toggle('active', i === stepIndex + 1);
+      });
+    }
+    
+    // Apply a move to the current state
+    function applyMove(move) {
+      const emptyIndex = gameState.currentState.indexOf(null);
+      let targetIndex = -1;
+      
+      switch (move) {
+        case 'up':
+          targetIndex = emptyIndex - 3;
+          break;
+        case 'down':
+          targetIndex = emptyIndex + 3;
+          break;
+        case 'left':
+          targetIndex = emptyIndex - 1;
+          break;
+        case 'right':
+          targetIndex = emptyIndex + 1;
+          break;
+      }
+      
+      if (targetIndex >= 0 && targetIndex < 9) [gameState.currentState[emptyIndex], gameState.currentState[targetIndex]] = [gameState.currentState[targetIndex], gameState.currentState[emptyIndex]];// Swap tiles
+      
+    }
+    
+    // Reset the puzzle to initial state
+    function resetPuzzle() {
+      gameState.currentState = [...gameState.startState];
+      renderBoard();
+      solutionContainer.style.display = 'none';
+      resetBtn.disabled = true;
+      goalBoard.classList.remove('solved');
+    }
+    
+    // Generate a random solvable puzzle
+    function generateRandomPuzzle() {
+      // Create a solvable random state
+      const newState = createSolvableState();
+      gameState.startState = newState;
+      gameState.currentState = [...newState];
+      
+      // Update shuffle count
+      gameState.shuffleCount++;
+      shuffleCountEl.textContent = `Shuffle: ${gameState.shuffleCount} ${gameState.shuffleCount === 1 ? 'move' : 'moves'}`;
+      
+      // Reinitialize boards
+      renderBoard();
+      solutionContainer.style.display = 'none';
+      resetBtn.disabled = true;
+      goalBoard.classList.remove('solved');
+      updateSolvabilityIndicator();
+    }
+    
+    // Create a solvable puzzle state
+    function createSolvableState() {
+      // Start from the goal state
+      let state = [...gameState.goalState];
+      
+      // Number of random moves to make
+      const moves = 30 + Math.floor(Math.random() * 30);
+      
+      for (let i = 0; i < moves; i++) {
+        const emptyIndex = state.indexOf(null);
+        const validMoves = [];
+        
+        // Check possible moves
+        if (emptyIndex - 3 >= 0) validMoves.push(emptyIndex - 3); // up
+        if (emptyIndex + 3 < 9) validMoves.push(emptyIndex + 3); // down
+        if (emptyIndex % 3 > 0) validMoves.push(emptyIndex - 1); // left
+        if (emptyIndex % 3 < 2) validMoves.push(emptyIndex + 1); // right
+        
+        // Randomly choose a valid move
+        const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+        
+        // Swap the empty tile with the target tile
+        [state[emptyIndex], state[randomMove]] = [state[randomMove], state[emptyIndex]];
+      }
+      
+      return state;
+    }
+    
+    // Check if a puzzle is solvable
+    function isSolvable() {
+      // Flatten the state array, ignoring the empty tile
+      const flatState = gameState.startState.filter(tile => tile !== null);
+      
+      // Count inversions
+      let inversions = 0;
+      for (let i = 0; i < flatState.length; i++) {
+        for (let j = i + 1; j < flatState.length; j++) {
+          if (flatState[i] > flatState[j])  inversions++;
+        }
+      }
+      
+      // For an 8-puzzle, it's solvable if the number of inversions is even
+      return inversions % 2 === 0;
+    }
+    
+    // Update the solvability indicator
+    function updateSolvabilityIndicator() {
+      const solvable = isSolvable();
+      solvableIndicator.textContent = solvable ? 'Solvable' : 'Unsolvable';
+      solvableIndicator.className = 'status-indicator ' + (solvable ? 'solvable' : 'unsolvable');
+      
+      // Disable solve button if unsolvable
+      solveBtn.disabled = !solvable;
+      if (!solvable) solveBtn.title = "This puzzle configuration is unsolvable";
+       else solveBtn.title = "";
+    }
+    
+    // Confetti celebration effect
+    function showCelebration() {
+      const canvas = confettiCanvas;
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const confettiColors = ['#ff6b6b', '#ffcc00', '#3498db', '#9b59b6', '#2ecc71'];
+      const confetti = [];
+      
+      // Create confetti particles
+      for (let i = 0; i < 150; i++) {
+        confetti.push({
+          x: Math.random() * canvas.width,
+          y: -Math.random() * canvas.height,
+          size: Math.random() * 10 + 5,
+          speed: Math.random() * 3 + 2,
+          color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+          rotation: Math.random() * 360,
+          rotationSpeed: Math.random() * 10 - 5
+        });
+      }
+      
+      let animationFrame;
+      const animateConfetti = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        let activeParticles = 0;
+        
+        for (let i = 0; i < confetti.length; i++) {
+          const p = confetti[i];
+          
+          p.y += p.speed;
+          p.x += Math.sin(p.y * 0.05);
+          p.rotation += p.rotationSpeed;
+          
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation * Math.PI / 180);
+          ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+          ctx.restore();
+          
+          if (p.y < canvas.height) activeParticles++;
+        }
+        
+        if (activeParticles > 0) {
+          animationFrame = requestAnimationFrame(animateConfetti);
+        } else {
+          cancelAnimationFrame(animationFrame);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      };
+      
+      animateConfetti();
+      
+      // Auto remove canvas after animation
+      setTimeout(() => {
+        cancelAnimationFrame(animationFrame);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }, 3000);
+    }
+    
+    // Event listeners
+    solveBtn.addEventListener('click', solvePuzzle);
+    resetBtn.addEventListener('click', resetPuzzle);
+    randomizeBtn.addEventListener('click', generateRandomPuzzle);
+    
+    // Initialize the game
+    initializeBoards();
+  </script>
+</body>
+</html>
