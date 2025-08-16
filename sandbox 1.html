@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Physics Sandbox</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            color: white;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .sandbox {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            background: linear-gradient(45deg, #1e3c72 0%, #2a5298 100%);
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.3);
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .section h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #fff;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .shape-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .shape-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #764ba2, #667eea);
+        }
+
+        .shape-btn.active {
+            border-color: #fff;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .slider-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            outline: none;
+            -webkit-appearance: none;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .value-display {
+            text-align: center;
+            font-size: 12px;
+            color: #fff;
+            margin-top: 5px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #ee5a24, #ff6b6b);
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .particle-system {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .glow {
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="title floating">Physics Sandbox</div>
+            
+            <div class="section">
+                <h3>🔧 Create Objects</h3>
+                <div class="shape-grid">
+                    <button class="shape-btn active" data-shape="cube">📦 Cube</button>
+                    <button class="shape-btn" data-shape="sphere">⚽ Sphere</button>
+                    <button class="shape-btn" data-shape="ramp">📐 Ramp</button>
+                    <button class="shape-btn" data-shape="platform">📏 Platform</button>
+                    <button class="shape-btn" data-shape="chain">⛓️ Chain</button>
+                    <button class="shape-btn" data-shape="pendulum">🎯 Pendulum</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>📏 Object Properties</h3>
+                <div class="control-group">
+                    <label>Size</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="sizeSlider" min="10" max="80" value="30">
+                        <div class="value-display" id="sizeValue">30px</div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Mass</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="massSlider" min="0.1" max="5" step="0.1" value="1">
+                        <div class="value-display" id="massValue">1.0 kg</div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Bounciness</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="bounceSlider" min="0" max="1" step="0.1" value="0.7">
+                        <div class="value-display" id="bounceValue">0.7</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>⚡ Physics Forces</h3>
+                <div class="control-group">
+                    <label>Gravity</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="gravitySlider" min="0" max="2" step="0.1" value="0.5">
+                        <div class="value-display" id="gravityValue">0.5 g</div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Air Resistance</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="dampingSlider" min="0.98" max="1" step="0.005" value="0.995">
+                        <div class="value-display" id="dampingValue">0.995</div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Force Strength</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="forceSlider" min="1" max="20" value="5">
+                        <div class="value-display" id="forceValue">5 N</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🎮 Controls</h3>
+                <button class="action-btn" onclick="togglePause()">⏸️ Pause</button>
+                <button class="action-btn" onclick="clearAll()">🗑️ Clear All</button>
+                <button class="action-btn" onclick="toggleTrails()">✨ Trails</button>
+                <button class="action-btn" onclick="explode()">💥 Explode</button>
+            </div>
+        </div>
+
+        <div class="sandbox">
+            <canvas id="canvas"></canvas>
+            <div class="stats">
+                <div>Objects: <span id="objectCount">0</span></div>
+                <div>FPS: <span id="fps">60</span></div>
+                <div>Mode: <span id="mode">Create</span></div>
+            </div>
+            <div class="instructions">
+                <strong>Controls:</strong><br>
+                • Click to create objects<br>
+                • Hold Shift + Click to apply force<br>
+                • Right-click to delete objects<br>
+                • Drag to move objects<br>
+                • Mouse wheel to resize
+            </div>
+            <canvas class="particle-system" id="particles"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const particleCanvas = document.getElementById('particles');
+        const particleCtx = particleCanvas.getContext('2d');
+
+        // Responsive canvas
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            particleCanvas.width = canvas.offsetWidth;
+            particleCanvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Physics engine
+        class PhysicsEngine {
+            constructor() {
+                this.objects = [];
+                this.gravity = 0.5;
+                this.damping = 0.995;
+                this.paused = false;
+                this.trails = false;
+                this.particles = [];
+            }
+
+            addObject(obj) {
+                this.objects.push(obj);
+                this.createSparkles(obj.x, obj.y);
+            }
+
+            removeObject(obj) {
+                const index = this.objects.indexOf(obj);
+                if (index > -1) {
+                    this.objects.splice(index, 1);
+                    this.createExplosion(obj.x, obj.y);
+                }
+            }
+
+            update() {
+                if (this.paused) return;
+
+                // Update physics
+                this.objects.forEach(obj => {
+                    if (obj.type === 'platform' || obj.type === 'ramp') return;
+
+                    // Apply gravity
+                    obj.vy += this.gravity;
+
+                    // Apply damping
+                    obj.vx *= this.damping;
+                    obj.vy *= this.damping;
+
+                    // Update position
+                    obj.x += obj.vx;
+                    obj.y += obj.vy;
+
+                    // Boundary collisions
+                    if (obj.x - obj.size < 0) {
+                        obj.x = obj.size;
+                        obj.vx = -obj.vx * obj.bounce;
+                        this.createImpactEffect(obj.x, obj.y);
+                    }
+                    if (obj.x + obj.size > canvas.width) {
+                        obj.x = canvas.width - obj.size;
+                        obj.vx = -obj.vx * obj.bounce;
+                        this.createImpactEffect(obj.x, obj.y);
+                    }
+                    if (obj.y - obj.size < 0) {
+                        obj.y = obj.size;
+                        obj.vy = -obj.vy * obj.bounce;
+                        this.createImpactEffect(obj.x, obj.y);
+                    }
+                    if (obj.y + obj.size > canvas.height) {
+                        obj.y = canvas.height - obj.size;
+                        obj.vy = -obj.vy * obj.bounce;
+                        this.createImpactEffect(obj.x, obj.y);
+                    }
+
+                    // Update rotation
+                    obj.rotation += obj.angularVelocity;
+                });
+
+                // Object-to-object collisions
+                this.checkCollisions();
+
+                // Update particles
+                this.updateParticles();
+            }
+
+            checkCollisions() {
+                for (let i = 0; i < this.objects.length; i++) {
+                    for (let j = i + 1; j < this.objects.length; j++) {
+                        const obj1 = this.objects[i];
+                        const obj2 = this.objects[j];
+
+                        if (obj1.type === 'platform' || obj1.type === 'ramp' || 
+                            obj2.type === 'platform' || obj2.type === 'ramp') {
+                            this.checkStaticCollision(obj1, obj2);
+                        } else {
+                            this.checkDynamicCollision(obj1, obj2);
+                        }
+                    }
+                }
+            }
+
+            checkDynamicCollision(obj1, obj2) {
+                const dx = obj2.x - obj1.x;
+                const dy = obj2.y - obj1.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = obj1.size + obj2.size;
+
+                if (distance < minDistance) {
+                    // Collision detected
+                    const overlap = minDistance - distance;
+                    const separationX = (dx / distance) * overlap * 0.5;
+                    const separationY = (dy / distance) * overlap * 0.5;
+
+                    obj1.x -= separationX;
+                    obj1.y -= separationY;
+                    obj2.x += separationX;
+                    obj2.y += separationY;
+
+                    // Elastic collision
+                    const vx1 = obj1.vx;
+                    const vy1 = obj1.vy;
+                    const vx2 = obj2.vx;
+                    const vy2 = obj2.vy;
+
+                    obj1.vx = vx2 * obj1.bounce;
+                    obj1.vy = vy2 * obj1.bounce;
+                    obj2.vx = vx1 * obj2.bounce;
+                    obj2.vy = vy1 * obj2.bounce;
+
+                    // Create impact effect
+                    this.createImpactEffect((obj1.x + obj2.x) / 2, (obj1.y + obj2.y) / 2);
+                }
+            }
+
+            checkStaticCollision(obj1, obj2) {
+                const platform = obj1.type === 'platform' || obj1.type === 'ramp' ? obj1 : obj2;
+                const dynamic = platform === obj1 ? obj2 : obj1;
+
+                if (platform.type === 'platform' || platform.type === 'ramp') {
+                    const dx = Math.abs(dynamic.x - platform.x);
+                    const dy = Math.abs(dynamic.y - platform.y);
+
+                    if (dx < platform.width / 2 + dynamic.size && 
+                        dy < platform.height / 2 + dynamic.size) {
+                        
+                        if (dynamic.y < platform.y) {
+                            dynamic.y = platform.y - platform.height / 2 - dynamic.size;
+                            dynamic.vy = -dynamic.vy * dynamic.bounce;
+                            this.createImpactEffect(dynamic.x, dynamic.y + dynamic.size);
+                        }
+                    }
+                }
+            }
+
+            createSparkles(x, y) {
+                for (let i = 0; i < 10; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        life: 1,
+                        decay: 0.02,
+                        size: Math.random() * 3 + 1,
+                        color: `hsl(${Math.random() * 60 + 180}, 100%, 70%)`
+                    });
+                }
+            }
+
+            createImpactEffect(x, y) {
+                for (let i = 0; i < 5; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: 1,
+                        decay: 0.05,
+                        size: Math.random() * 2 + 1,
+                        color: `hsl(${Math.random() * 60 + 30}, 100%, 60%)`
+                    });
+                }
+            }
+
+            createExplosion(x, y) {
+                for (let i = 0; i < 20; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 15,
+                        vy: (Math.random() - 0.5) * 15,
+                        life: 1,
+                        decay: 0.03,
+                        size: Math.random() * 4 + 2,
+                        color: `hsl(${Math.random() * 60}, 100%, 60%)`
+                    });
+                }
+            }
+
+            updateParticles() {
+                this.particles = this.particles.filter(particle => {
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.vy += 0.1; // Gravity
+                    particle.life -= particle.decay;
+                    return particle.life > 0;
+                });
+            }
+
+            render() {
+                // Clear canvas
+                if (!this.trails) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                } else {
+                    ctx.fillStyle = 'rgba(30, 60, 114, 0.1)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                // Render objects
+                this.objects.forEach(obj => {
+                    ctx.save();
+                    ctx.translate(obj.x, obj.y);
+                    ctx.rotate(obj.rotation);
+
+                    // Create gradient based on velocity
+                    const speed = Math.sqrt(obj.vx * obj.vx + obj.vy * obj.vy);
+                    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, obj.size);
+                    gradient.addColorStop(0, obj.color);
+                    gradient.addColorStop(1, this.adjustColor(obj.color, -30));
+
+                    ctx.fillStyle = gradient;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 2;
+
+                    if (obj.type === 'cube') {
+                        ctx.fillRect(-obj.size, -obj.size, obj.size * 2, obj.size * 2);
+                        ctx.strokeRect(-obj.size, -obj.size, obj.size * 2, obj.size * 2);
+                    } else if (obj.type === 'sphere') {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, obj.size, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                    } else if (obj.type === 'platform') {
+                        ctx.fillRect(-obj.width / 2, -obj.height / 2, obj.width, obj.height);
+                        ctx.strokeRect(-obj.width / 2, -obj.height / 2, obj.width, obj.height);
+                    } else if (obj.type === 'ramp') {
+                        ctx.beginPath();
+                        ctx.moveTo(-obj.width / 2, obj.height / 2);
+                        ctx.lineTo(obj.width / 2, obj.height / 2);
+                        ctx.lineTo(obj.width / 2, -obj.height / 2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+
+                    // Add glow effect for fast-moving objects
+                    if (speed > 5) {
+                        ctx.shadowBlur = speed * 2;
+                        ctx.shadowColor = obj.color;
+                    }
+
+                    ctx.restore();
+                });
+
+                // Render particles
+                particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+                this.particles.forEach(particle => {
+                    particleCtx.save();
+                    particleCtx.globalAlpha = particle.life;
+                    particleCtx.fillStyle = particle.color;
+                    particleCtx.beginPath();
+                    particleCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    particleCtx.fill();
+                    particleCtx.restore();
+                });
+            }
+
+            adjustColor(color, amount) {
+                const num = parseInt(color.replace("#", ""), 16);
+                const amt = Math.round(2.55 * amount);
+                const R = (num >> 16) + amt;
+                const G = (num >> 8 & 0x00FF) + amt;
+                const B = (num & 0x0000FF) + amt;
+                return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                    (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+            }
+        }
+
+        // Initialize physics engine
+        const physics = new PhysicsEngine();
+
+        // UI State
+        let selectedShape = 'cube';
+        let isDragging = false;
+        let dragObject = null;
+        let dragOffset = { x: 0, y: 0 };
+        let isApplyingForce = false;
+
+        // Event listeners for UI
+        document.querySelectorAll('.shape-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedShape = btn.dataset.shape;
+                document.getElementById('mode').textContent = 'Create ' + selectedShape;
+            });
+        });
+
+        // Slider updates
+        const sliders = {
+            size: document.getElementById('sizeSlider'),
+            mass: document.getElementById('massSlider'),
+            bounce: document.getElementById('bounceSlider'),
+            gravity: document.getElementById('gravitySlider'),
+            damping: document.getElementById('dampingSlider'),
+            force: document.getElementById('forceSlider')
+        };
+
+        Object.keys(sliders).forEach(key => {
+            const slider = sliders[key];
+            const valueDisplay = document.getElementById(key + 'Value');
+            
+            slider.addEventListener('input', () => {
+                const value = parseFloat(slider.value);
+                
+                if (key === 'gravity') {
+                    physics.gravity = value;
+                    valueDisplay.textContent = value.toFixed(1) + ' g';
+                } else if (key === 'damping') {
+                    physics.damping = value;
+                    valueDisplay.textContent = value.toFixed(3);
+                } else if (key === 'size') {
+                    valueDisplay.textContent = value + 'px';
+                } else if (key === 'mass') {
+                    valueDisplay.textContent = value.toFixed(1) + ' kg';
+                } else if (key === 'bounce') {
+                    valueDisplay.textContent = value.toFixed(1);
+                } else if (key === 'force') {
+                    valueDisplay.textContent = value + ' N';
+                }
+            });
+        });
+
+        // Canvas interactions
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (e.shiftKey) {
+                isApplyingForce = true;
+                document.getElementById('mode').textContent = 'Apply Force';
+                return;
+            }
+
+            if (e.button === 2) { // Right click
+                const clickedObject = getObjectAt(x, y);
+                if (clickedObject) {
+                    physics.removeObject(clickedObject);
+                }
+                return;
+            }
+
+            const clickedObject = getObjectAt(x, y);
+            if (clickedObject) {
+                isDragging = true;
+                dragObject = clickedObject;
+                dragOffset.x = x - clickedObject.x;
+                dragOffset.y = y - clickedObject.y;
+                document.getElementById('mode').textContent = 'Drag Object';
+            } else {
+                createObject(x, y);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging && dragObject) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                dragObject.x = x - dragOffset.x;
+                dragObject.y = y - dragOffset.y;
+                dragObject.vx = 0;
+                dragObject.vy = 0;
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (isApplyingForce) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                applyForceToObjects(x, y);
+                isApplyingForce = false;
+                document.getElementById('mode').textContent = 'Create ' + selectedShape;
+            }
+            
+            isDragging = false;
+            dragObject = null;
+        });
+
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        canvas.addEventListener('wheel', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const obj = getObjectAt(x, y);
+            
+            if (obj) {
+                const delta = e.deltaY > 0 ? -2 : 2;
+                obj.size = Math.max(5, Math.min(100, obj.size + delta));
+                if (obj.type === 'platform' || obj.type === 'ramp') {
+                    obj.width = Math.max(20, Math.min(200, obj.width + delta * 2));
+                    obj.height = Math.max(10, Math.min(100, obj.height + delta));
+                }
+                e.preventDefault();
+            }
+        });
+
+        // Helper functions
+        function getObjectAt(x, y) {
+            for (let i = physics.objects.length - 1; i >= 0; i--) {
+                const obj = physics.objects[i];
+                const dx = x - obj.x;
+                const dy = y - obj.y;
+                
+                if (obj.type === 'platform' || obj.type === 'ramp') {
+                    if (Math.abs(dx) < obj.width / 2 && Math.abs(dy) < obj.height / 2) {
+                        return obj;
+                    }
+                } else {
+                    if (Math.sqrt(dx * dx + dy * dy) < obj.size) {
+                        return obj;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function createObject(x, y) {
+            const size = parseInt(sliders.size.value);
+            const mass = parseFloat(sliders.mass.value);
+            const bounce = parseFloat(sliders.bounce.value);
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd', '#98d8c8'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            const obj = {
+                x: x,
+                y: y,
+                vx: 0,
+                vy: 0,
+                size: size,
+                mass: mass,
+                bounce: bounce,
+                color: color,
+                type: selectedShape,
+                rotation: 0,
+                angularVelocity: 0
+            };
+
+            if (selectedShape === 'platform') {
+                obj.width = size * 3;
+                obj.height = size / 2;
+            } else if (selectedShape === 'ramp') {
+                obj.width = size * 2;
+                obj.height = size;
+            } else if (selectedShape === 'chain') {
+                createChain(x, y, size);
+                return;
+            } else if (selectedShape === 'pendulum') {
+                createPendulum(x, y, size);
+                return;
+            }
+
+            physics.addObject(obj);
+        }
+
+        function createChain(x, y, size) {
+            const segments = 8;
+            const segmentSize = size / 2;
+            const spacing = segmentSize * 2.5;
+
+            for (let i = 0; i < segments; i++) {
+                const obj = {
+                    x: x,
+                    y: y + i * spacing,
+                    vx: 0,
+                    vy: 0,
+                    size: segmentSize,
+                    mass: 0.5,
+                    bounce: 0.3,
+                    color: '#666',
+                    type: i === 0 ? 'platform' : 'sphere',
+                    rotation: 0,
+                    angularVelocity: 0
+                };
+
+                if (i === 0) {
+                    obj.width = segmentSize;
+                    obj.height = segmentSize / 2;
+                }
+
+                physics.addObject(obj);
+            }
+        }
+
+        function createPendulum(x, y, size) {
+            // Fixed anchor point
+            const anchor = {
+                x: x,
+                y: y,
+                vx: 0,
+                vy: 0,
+                size: size / 3,
+                mass: 1000,
+                bounce: 0,
+                color: '#333',
+                type: 'platform',
+                width: size / 2,
+                height: size / 2,
+                rotation: 0,
+                angularVelocity: 0
+            };
+
+            // Pendulum bob
+            const bob = {
+                x: x,
+                y: y + size * 3,
+                vx: 0,
+                vy: 0,
+                size: size,
+                mass: 2,
+                bounce: 0.8,
+                color: '#ff6b6b',
+                type: 'sphere',
+                rotation: 0,
+                angularVelocity: 0
+            };
+
+            physics.addObject(anchor);
+            physics.addObject(bob);
+        }
+
+        function applyForceToObjects(x, y) {
+            const forceStrength = parseFloat(sliders.force.value);
+            const radius = 100;
+
+            physics.objects.forEach(obj => {
+                if (obj.type === 'platform' || obj.type === 'ramp') return;
+
+                const dx = obj.x - x;
+                const dy = obj.y - y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < radius) {
+                    const force = forceStrength * (1 - distance / radius);
+                    const angle = Math.atan2(dy, dx);
+                    
+                    obj.vx += Math.cos(angle) * force;
+                    obj.vy += Math.sin(angle) * force;
+                    obj.angularVelocity += (Math.random() - 0.5) * 0.2;
+
+                    physics.createSparkles(obj.x, obj.y);
+                }
+            });
+
+            // Create force visualization
+            physics.createExplosion(x, y);
+        }
+
+        // Control functions
+        function togglePause() {
+            physics.paused = !physics.paused;
+            const btn = document.querySelector('.action-btn');
+            btn.textContent = physics.paused ? '▶️ Resume' : '⏸️ Pause';
+        }
+
+        function clearAll() {
+            physics.objects = [];
+            physics.particles = [];
+            physics.createExplosion(canvas.width / 2, canvas.height / 2);
+        }
+
+        function toggleTrails() {
+            physics.trails = !physics.trails;
+            const btn = document.querySelectorAll('.action-btn')[2];
+            btn.textContent = physics.trails ? '🌟 Trails On' : '✨ Trails';
+        }
+
+        function explode() {
+            physics.objects.forEach(obj => {
+                if (obj.type === 'platform' || obj.type === 'ramp') return;
+
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const dx = obj.x - centerX;
+                const dy = obj.y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const force = 20 * (1 - distance / Math.max(canvas.width, canvas.height));
+
+                if (distance > 0) {
+                    obj.vx += (dx / distance) * force;
+                    obj.vy += (dy / distance) * force;
+                    obj.angularVelocity += (Math.random() - 0.5) * 0.5;
+                }
+            });
+
+            physics.createExplosion(canvas.width / 2, canvas.height / 2);
+        }
+
+        // Animation loop
+        let lastTime = 0;
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+
+        function animate(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            // Update physics
+            physics.update();
+
+            // Render
+            physics.render();
+
+            // Update UI
+            document.getElementById('objectCount').textContent = physics.objects.length;
+
+            // FPS calculation
+            frameCount++;
+            if (currentTime - lastFpsUpdate >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = currentTime;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start animation
+        requestAnimationFrame(animate);
+
+        // Initialize with some demo objects
+        setTimeout(() => {
+            // Create a platform
+            selectedShape = 'platform';
+            createObject(canvas.width / 2, canvas.height * 0.8);
+            
+            // Create some bouncing balls
+            selectedShape = 'sphere';
+            for (let i = 0; i < 5; i++) {
+                createObject(
+                    Math.random() * (canvas.width - 100) + 50,
+                    Math.random() * (canvas.height / 2) + 50
+                );
+            }
+            
+            // Create a ramp
+            selectedShape = 'ramp';
+            createObject(canvas.width * 0.3, canvas.height * 0.6);
+            
+            // Reset to cube
+            selectedShape = 'cube';
+            document.querySelectorAll('.shape-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.shape === 'cube') btn.classList.add('active');
+            });
+        }, 500);
+
+        // Add some ambient particles
+        setInterval(() => {
+            if (physics.particles.length < 50) {
+                physics.particles.push({
+                    x: Math.random() * canvas.width,
+                    y: -10,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: Math.random() * 2 + 1,
+                    life: 1,
+                    decay: 0.005,
+                    size: Math.random() * 2 + 1,
+                    color: `hsl(${Math.random() * 360}, 70%, 80%)`
+                });
+            }
+        }, 2000);
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case ' ':
+                    e.preventDefault();
+                    togglePause();
+                    break;
+                case 'c':
+                    clearAll();
+                    break;
+                case 't':
+                    toggleTrails();
+                    break;
+                case 'e':
+                    explode();
+                    break;
+                case '1':
+                    selectedShape = 'cube';
+                    document.querySelectorAll('.shape-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                        if (btn.dataset.shape === 'cube') btn.classList.add('active');
+                    });
+                    break;
+                case '2':
+                    selectedShape = 'sphere';
+                    document.querySelectorAll('.shape-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                        if (btn.dataset.shape === 'sphere') btn.classList.add('active');
+                    });
+                    break;
+                case '3':
+                    selectedShape = 'ramp';
+                    document.querySelectorAll('.shape-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                        if (btn.dataset.shape === 'ramp') btn.classList.add('active');
+                    });
+                    break;
+            }
+        });
+
+        // Make control functions global
+        window.togglePause = togglePause;
+        window.clearAll = clearAll;
+        window.toggleTrails = toggleTrails;
+        window.explode = explode;
+    </script>
+</body>
+</html>
