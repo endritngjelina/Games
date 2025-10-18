@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Pulse - One Button Mastery</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-pink: #ff0080;
+            --neon-green: #00ff41;
+            --neon-purple: #8a2be2;
+            --dark-bg: #0a0a0a;
+            --darker-bg: #050505;
+            --accent-blue: #1a1a2e;
+            --gold: #ffd700;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 50%, var(--accent-blue) 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .background-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: float 8s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-100px) translateX(50px); opacity: 0; }
+        }
+
+        .game-header {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            z-index: 10;
+        }
+
+        .score-display {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .streak-display {
+            font-size: 18px;
+            color: var(--neon-green);
+            text-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .game-title {
+            position: absolute;
+            top: 80px;
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-pink), var(--neon-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            z-index: 10;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .game-area {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            border: 3px solid var(--neon-cyan);
+            border-radius: 20px;
+            background: rgba(0, 255, 255, 0.05);
+            box-shadow: 
+                0 0 50px var(--neon-cyan),
+                inset 0 0 50px rgba(0, 255, 255, 0.1);
+            z-index: 5;
+            overflow: hidden;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            border: 4px solid var(--neon-cyan);
+            border-radius: 50%;
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 1;
+                border-color: var(--neon-cyan);
+            }
+            50% {
+                border-color: var(--neon-pink);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0;
+                border-color: var(--neon-green);
+            }
+        }
+
+        .timing-zone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            border: 6px solid var(--neon-green);
+            border-radius: 50%;
+            opacity: 0.8;
+            box-shadow: 0 0 30px var(--neon-green);
+        }
+
+        .perfect-zone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border: 4px solid var(--gold);
+            border-radius: 50%;
+            opacity: 0.9;
+            box-shadow: 0 0 25px var(--gold);
+        }
+
+        .main-button {
+            position: absolute;
+            bottom: 100px;
+            width: 200px;
+            height: 80px;
+            background: linear-gradient(45deg, var(--neon-pink), var(--neon-purple));
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-family: 'Orbitron', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 40px var(--neon-pink),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+            z-index: 10;
+        }
+
+        .main-button:hover {
+            transform: scale(1.05);
+            box-shadow: 
+                0 0 60px var(--neon-pink),
+                inset 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .main-button:active {
+            transform: scale(0.95);
+        }
+
+        .feedback-text {
+            position: absolute;
+            top: 160px;
+            font-size: 32px;
+            font-weight: 700;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            z-index: 10;
+        }
+
+        .feedback-text.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feedback-perfect { color: var(--gold); text-shadow: 0 0 30px var(--gold); }
+        .feedback-great { color: var(--neon-green); text-shadow: 0 0 25px var(--neon-green); }
+        .feedback-good { color: var(--neon-cyan); text-shadow: 0 0 20px var(--neon-cyan); }
+        .feedback-miss { color: var(--neon-pink); text-shadow: 0 0 20px var(--neon-pink); }
+
+        .combo-display {
+            position: absolute;
+            top: 200px;
+            font-size: 20px;
+            color: var(--gold);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .combo-display.show {
+            opacity: 1;
+            animation: combo-bounce 0.5s ease;
+        }
+
+        @keyframes combo-bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .menu-content {
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .menu-title {
+            font-size: 36px;
+            margin-bottom: 30px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 30px var(--neon-cyan);
+        }
+
+        .menu-button {
+            display: block;
+            width: 200px;
+            height: 50px;
+            margin: 15px auto;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-green));
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-family: 'Orbitron', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px var(--neon-cyan);
+        }
+
+        .leaderboard {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 20px;
+            border: 2px solid var(--neon-cyan);
+        }
+
+        .leaderboard h3 {
+            color: var(--neon-cyan);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+        }
+
+        .leaderboard-entry:last-child {
+            border-bottom: none;
+        }
+
+        .rank { color: var(--gold); }
+        .name { color: var(--neon-green); }
+        .score { color: var(--neon-pink); }
+
+        .theme-selector {
+            margin: 20px 0;
+        }
+
+        .theme-button {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            margin: 5px;
+            border-radius: 50%;
+            border: 2px solid white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-button:hover {
+            transform: scale(1.2);
+        }
+
+        .theme-neon { background: linear-gradient(45deg, var(--neon-cyan), var(--neon-pink)); }
+        .theme-matrix { background: linear-gradient(45deg, #00ff00, #008000); }
+        .theme-sunset { background: linear-gradient(45deg, #ff6b35, #f7931e); }
+        .theme-ocean { background: linear-gradient(45deg, #667eea, #764ba2); }
+
+        .instructions {
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ccc;
+            max-width: 400px;
+        }
+
+        .hidden { display: none; }
+
+        @media (max-width: 768px) {
+            .game-area {
+                width: 90vw;
+                height: 300px;
+            }
+            
+            .game-title {
+                font-size: 32px;
+            }
+            
+            .main-button {
+                width: 160px;
+                height: 60px;
+                font-size: 18px;
+            }
+            
+            .game-header {
+                padding: 0 20px;
+            }
+        }
+
+        /* Sound wave animation for audio feedback */
+        .sound-wave {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 2px solid var(--neon-green);
+            border-radius: 50%;
+            opacity: 0;
+            animation: sound-wave 0.6s ease-out;
+        }
+
+        @keyframes sound-wave {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="background-particles" id="particles"></div>
+        
+        <div class="game-header">
+            <div>
+                <div class="score-display">Score: <span id="score">0</span></div>
+                <div class="streak-display">Streak: <span id="streak">0</span></div>
+            </div>
+            <div>
+                <div class="score-display">Level: <span id="level">1</span></div>
+                <div class="streak-display">Best: <span id="bestScore">0</span></div>
+            </div>
+        </div>
+
+        <h1 class="game-title">NEON PULSE</h1>
+
+        <div class="game-area" id="gameArea">
+            <div class="pulse-ring" id="pulseRing"></div>
+            <div class="timing-zone"></div>
+            <div class="perfect-zone"></div>
+        </div>
+
+        <div class="feedback-text" id="feedback"></div>
+        <div class="combo-display" id="combo"></div>
+
+        <button class="main-button" id="mainButton">PULSE</button>
+
+        <div class="menu-overlay" id="menuOverlay">
+            <div class="menu-content">
+                <h2 class="menu-title">NEON PULSE</h2>
+                <p class="instructions">
+                    Hit the button when the pulse ring aligns with the timing zones.<br>
+                    <strong>Gold Zone</strong> = Perfect (100 pts)<br>
+                    <strong>Green Zone</strong> = Great (50 pts)<br>
+                    <strong>Outside</strong> = Good (25 pts)<br>
+                    Build combos for bonus multipliers!
+                </p>
+                
+                <div class="theme-selector">
+                    <h4 style="color: var(--neon-cyan); margin-bottom: 10px;">Choose Theme:</h4>
+                    <div class="theme-button theme-neon" data-theme="neon"></div>
+                    <div class="theme-button theme-matrix" data-theme="matrix"></div>
+                    <div class="theme-button theme-sunset" data-theme="sunset"></div>
+                    <div class="theme-button theme-ocean" data-theme="ocean"></div>
+                </div>
+
+                <button class="menu-button" onclick="startGame()">START GAME</button>
+                <button class="menu-button" onclick="showLeaderboard()">LEADERBOARD</button>
+                <button class="menu-button" onclick="showInstructions()">HOW TO PLAY</button>
+            </div>
+        </div>
+
+        <div class="menu-overlay hidden" id="leaderboardOverlay">
+            <div class="menu-content">
+                <h2 class="menu-title">LEADERBOARD</h2>
+                <div class="leaderboard" id="leaderboard">
+                    <h3>Top Scores</h3>
+                    <div id="leaderboardEntries"></div>
+                </div>
+                <button class="menu-button" onclick="showMainMenu()">BACK</button>
+                <button class="menu-button" onclick="clearLeaderboard()">CLEAR SCORES</button>
+            </div>
+        </div>
+
+        <div class="menu-overlay hidden" id="gameOverOverlay">
+            <div class="menu-content">
+                <h2 class="menu-title">GAME OVER</h2>
+                <p style="font-size: 24px; margin: 20px 0; color: var(--neon-cyan);">
+                    Final Score: <span id="finalScore">0</span>
+                </p>
+                <p style="font-size: 18px; margin: 10px 0; color: var(--neon-green);">
+                    Best Streak: <span id="finalStreak">0</span>
+                </p>
+                <input type="text" id="playerName" placeholder="Enter your name" 
+                       style="width: 200px; padding: 10px; margin: 20px 0; background: rgba(0,0,0,0.7); border: 2px solid var(--neon-cyan); color: white; text-align: center; border-radius: 10px;">
+                <br>
+                <button class="menu-button" onclick="saveScore()">SAVE SCORE</button>
+                <button class="menu-button" onclick="startGame()">PLAY AGAIN</button>
+                <button class="menu-button" onclick="showMainMenu()">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NeonPulseGame {
+            constructor() {
+                this.score = 0;
+                this.streak = 0;
+                this.level = 1;
+                this.bestScore = parseInt(localStorage.getItem('neonPulseBest') || '0');
+                this.gameRunning = false;
+                this.pulseSpeed = 2000; // milliseconds
+                this.combo = 0;
+                this.maxCombo = 0;
+                
+                this.initializeElements();
+                this.initializeAudio();
+                this.initializeParticles();
+                this.loadLeaderboard();
+                this.loadTheme();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.elements = {
+                    score: document.getElementById('score'),
+                    streak: document.getElementById('streak'),
+                    level: document.getElementById('level'),
+                    bestScore: document.getElementById('bestScore'),
+                    feedback: document.getElementById('feedback'),
+                    combo: document.getElementById('combo'),
+                    mainButton: document.getElementById('mainButton'),
+                    pulseRing: document.getElementById('pulseRing'),
+                    gameArea: document.getElementById('gameArea'),
+                    menuOverlay: document.getElementById('menuOverlay'),
+                    leaderboardOverlay: document.getElementById('leaderboardOverlay'),
+                    gameOverOverlay: document.getElementById('gameOverOverlay')
+                };
+                
+                this.elements.bestScore.textContent = this.bestScore;
+            }
+
+            initializeAudio() {
+                // Create audio context for sound effects (Web Audio API)
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.setupAudioNodes();
+                } catch (e) {
+                    console.log('Web Audio API not supported');
+                }
+            }
+
+            setupAudioNodes() {
+                // Create oscillators for different sound effects
+                this.sounds = {
+                    perfect: () => this.playTone(800, 0.2, 'sine'),
+                    great: () => this.playTone(600, 0.15, 'sine'),
+                    good: () => this.playTone(400, 0.1, 'sine'),
+                    miss: () => this.playTone(200, 0.3, 'sawtooth')
+                };
+            }
+
+            playTone(frequency, duration, waveType = 'sine') {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+                oscillator.type = waveType;
+                
+                gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + duration);
+            }
+
+            initializeParticles() {
+                const particleContainer = document.getElementById('particles');
+                for (let i = 0; i < 50; i++) {
+                    this.createParticle(particleContainer);
+                }
+            }
+
+            createParticle(container) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 8 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 6) + 's';
+                container.appendChild(particle);
+            }
+
+            bindEvents() {
+                this.elements.mainButton.addEventListener('click', () => this.handleButtonClick());
+                
+                // Keyboard support
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        if (this.gameRunning) {
+                            this.handleButtonClick();
+                        }
+                    }
+                });
+
+                // Theme selection
+                document.querySelectorAll('.theme-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        this.setTheme(button.dataset.theme);
+                    });
+                });
+            }
+
+            startGame() {
+                this.gameRunning = true;
+                this.score = 0;
+                this.streak = 0;
+                this.level = 1;
+                this.combo = 0;
+                this.maxCombo = 0;
+                this.pulseSpeed = 2000;
+                
+                this.hideAllOverlays();
+                this.updateDisplay();
+                this.startPulseAnimation();
+            }
+
+            handleButtonClick() {
+                if (!this.gameRunning) return;
+
+                // Resume audio context if needed
+                if (this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+
+                const timing = this.calculateTiming();
+                this.processTiming(timing);
+                this.createSoundWave();
+            }
+
+            calculateTiming() {
+                const pulseRing = this.elements.pulseRing;
+                const style = window.getComputedStyle(pulseRing);
+                const transform = style.transform;
+                
+                // Extract scale from transform matrix
+                if (transform === 'none') return 0;
+                
+                const values = transform.split('(')[1].split(')')[0].split(',');
+                const scale = parseFloat(values[0]);
+                
+                // Perfect timing: scale between 0.75 and 1.1 (gold zone)
+                // Great timing: scale between 0.6 and 1.4 (green zone)
+                // Good timing: anything else during animation
+                
+                if (scale >= 0.75 && scale <= 1.1) return 'perfect';
+                if (scale >= 0.6 && scale <= 1.4) return 'great';
+                if (scale >= 0.3 && scale <= 1.8) return 'good';
+                return 'miss';
+            }
+
+            processTiming(timing) {
+                let points = 0;
+                let feedback = '';
+                let streakBonus = false;
+
+                switch (timing) {
+                    case 'perfect':
+                        points = 100;
+                        feedback = 'PERFECT!';
+                        this.combo++;
+                        streakBonus = true;
+                        this.sounds.perfect();
+                        break;
+                    case 'great':
+                        points = 50;
+                        feedback = 'GREAT!';
+                        this.combo++;
+                        streakBonus = true;
+                        this.sounds.great();
+                        break;
+                    case 'good':
+                        points = 25;
+                        feedback = 'GOOD';
+                        this.combo = 0;
+                        this.sounds.good();
+                        break;
+                    case 'miss':
+                        points = 0;
+                        feedback = 'MISS';
+                        this.combo = 0;
+                        this.streak = 0;
+                        this.sounds.miss();
+                        this.endGame();
+                        return;
+                }
+
+                // Apply combo multiplier
+                if (this.combo > 1) {
+                    points *= Math.min(this.combo, 5); // Max 5x multiplier
+                }
+
+                this.score += points;
+                
+                if (streakBonus) {
+                    this.streak++;
+                    this.maxCombo = Math.max(this.maxCombo, this.combo);
+                }
+
+                // Level progression
+                if (this.score > this.level * 1000) {
+                    this.level++;
+                    this.pulseSpeed = Math.max(800, this.pulseSpeed - 100); // Increase difficulty
+                }
+
+                this.showFeedback(feedback, timing);
+                this.showCombo();
+                this.updateDisplay();
+                
+                // Update best score
+                if (this.score > this.bestScore) {
+                    this.bestScore = this.score;
+                    localStorage.setItem('neonPulseBest', this.bestScore.toString());
+                    this.elements.bestScore.textContent = this.bestScore;
+                }
+            }
+
+            createSoundWave() {
+                const wave = document.createElement('div');
+                wave.className = 'sound-wave';
+                this.elements.gameArea.appendChild(wave);
+                
+                setTimeout(() => {
+                    if (wave.parentNode) {
+                        wave.parentNode.removeChild(wave);
+                    }
+                }, 600);
+            }
+
+            showFeedback(text, type) {
+                const feedback = this.elements.feedback;
+                feedback.textContent = text;
+                feedback.className = `feedback-text feedback-${type} show`;
+                
+                setTimeout(() => {
+                    feedback.classList.remove('show');
+                }, 1000);
+            }
+
+            showCombo() {
+                if (this.combo > 1) {
+                    const comboElement = this.elements.combo;
+                    comboElement.textContent = `${this.combo}x COMBO!`;
+                    comboElement.classList.add('show');
+                    
+                    setTimeout(() => {
+                        comboElement.classList.remove('show');
+                    }, 1500);
+                }
+            }
+
+            startPulseAnimation() {
+                if (!this.gameRunning) return;
+                
+                // Reset animation
+                const pulseRing = this.elements.pulseRing;
+                pulseRing.style.animation = 'none';
+                pulseRing.offsetHeight; // Trigger reflow
+                pulseRing.style.animation = `pulse-ring ${this.pulseSpeed}ms infinite ease-in-out`;
+                
+                // Continue the game loop
+                setTimeout(() => {
+                    this.startPulseAnimation();
+                }, this.pulseSpeed);
+            }
+
+            updateDisplay() {
+                this.elements.score.textContent = this.score;
+                this.elements.streak.textContent = this.streak;
+                this.elements.level.textContent = this.level;
+            }
+
+            endGame() {
+                this.gameRunning = false;
+                
+                setTimeout(() => {
+                    document.getElementById('finalScore').textContent = this.score;
+                    document.getElementById('finalStreak').textContent = this.maxCombo;
+                    this.elements.gameOverOverlay.classList.remove('hidden');
+                }, 1000);
+            }
+
+            saveScore() {
+                const name = document.getElementById('playerName').value.trim() || 'Anonymous';
+                const scoreData = {
+                    name: name,
+                    score: this.score,
+                    streak: this.maxCombo,
+                    date: new Date().toLocaleDateString()
+                };
+                
+                let leaderboard = JSON.parse(localStorage.getItem('neonPulseLeaderboard') || '[]');
+                leaderboard.push(scoreData);
+                leaderboard.sort((a, b) => b.score - a.score);
+                leaderboard = leaderboard.slice(0, 10); // Keep top 10
+                
+                localStorage.setItem('neonPulseLeaderboard', JSON.stringify(leaderboard));
+                this.showMainMenu();
+            }
+
+            loadLeaderboard() {
+                const leaderboard = JSON.parse(localStorage.getItem('neonPulseLeaderboard') || '[]');
+                const container = document.getElementById('leaderboardEntries');
+                container.innerHTML = '';
+                
+                if (leaderboard.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666;">No scores yet!</p>';
+                    return;
+                }
+                
+                leaderboard.forEach((entry, index) => {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'leaderboard-entry';
+                    entryDiv.innerHTML = `
+                        <span class="rank">#${index + 1}</span>
+                        <span class="name">${entry.name}</span>
+                        <span class="score">${entry.score}</span>
+                    `;
+                    container.appendChild(entryDiv);
+                });
+            }
+
+            setTheme(themeName) {
+                const root = document.documentElement;
+                
+                const themes = {
+                    neon: {
+                        '--neon-cyan': '#00ffff',
+                        '--neon-pink': '#ff0080',
+                        '--neon-green': '#00ff41',
+                        '--neon-purple': '#8a2be2'
+                    },
+                    matrix: {
+                        '--neon-cyan': '#00ff00',
+                        '--neon-pink': '#008000',
+                        '--neon-green': '#00ff41',
+                        '--neon-purple': '#004400'
+                    },
+                    sunset: {
+                        '--neon-cyan': '#ff6b35',
+                        '--neon-pink': '#f7931e',
+                        '--neon-green': '#ffaa44',
+                        '--neon-purple': '#cc5500'
+                    },
+                    ocean: {
+                        '--neon-cyan': '#667eea',
+                        '--neon-pink': '#764ba2',
+                        '--neon-green': '#4facfe',
+                        '--neon-purple': '#00f2fe'
+                    }
+                };
+                
+                const selectedTheme = themes[themeName];
+                if (selectedTheme) {
+                    Object.keys(selectedTheme).forEach(property => {
+                        root.style.setProperty(property, selectedTheme[property]);
+                    });
+                    localStorage.setItem('neonPulseTheme', themeName);
+                }
+            }
+
+            loadTheme() {
+                const savedTheme = localStorage.getItem('neonPulseTheme');
+                if (savedTheme) {
+                    this.setTheme(savedTheme);
+                }
+            }
+
+            hideAllOverlays() {
+                this.elements.menuOverlay.classList.add('hidden');
+                this.elements.leaderboardOverlay.classList.add('hidden');
+                this.elements.gameOverOverlay.classList.add('hidden');
+            }
+
+            showMainMenu() {
+                this.hideAllOverlays();
+                this.elements.menuOverlay.classList.remove('hidden');
+            }
+
+            showLeaderboard() {
+                this.loadLeaderboard();
+                this.elements.menuOverlay.classList.add('hidden');
+                this.elements.leaderboardOverlay.classList.remove('hidden');
+            }
+
+            clearLeaderboard() {
+                if (confirm('Are you sure you want to clear all scores?')) {
+                    localStorage.removeItem('neonPulseLeaderboard');
+                    this.loadLeaderboard();
+                }
+            }
+        }
+
+        // Global functions for menu navigation
+        let game;
+
+        function startGame() {
+            game.startGame();
+        }
+
+        function showLeaderboard() {
+            game.showLeaderboard();
+        }
+
+        function showInstructions() {
+            alert('NEON PULSE - Instructions\n\n' +
+                  '🎯 OBJECTIVE: Hit the button when the pulse ring aligns with the timing zones\n\n' +
+                  '⭐ SCORING:\n' +
+                  '• PERFECT (Gold Zone): 100 points\n' +
+                  '• GREAT (Green Zone): 50 points\n' +
+                  '• GOOD (Outside zones): 25 points\n' +
+                  '• MISS: Game Over\n\n' +
+                  '🔥 COMBOS: Chain successful hits for multipliers (up to 5x)\n' +
+                  '📈 LEVELS: Game speeds up every 1000 points\n' +
+                  '🎨 THEMES: Choose your favorite color scheme\n\n' +
+                  '💡 TIP: Listen to the audio cues and watch for visual patterns!\n\n' +
+                  'Controls: Click button or press SPACEBAR');
+        }
+
+        function showMainMenu() {
+            game.showMainMenu();
+        }
+
+        function saveScore() {
+            game.saveScore();
+        }
+
+        function clearLeaderboard() {
+            game.clearLeaderboard();
+        }
+
+        // Initialize game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            game = new NeonPulseGame();
+            
+            // Add some extra visual flair
+            setInterval(() => {
+                if (Math.random() < 0.1) {
+                    createFloatingParticle();
+                }
+            }, 1000);
+        });
+
+        function createFloatingParticle() {
+            const particle = document.createElement('div');
+            particle.style.position = 'absolute';
+            particle.style.width = '4px';
+            particle.style.height = '4px';
+            particle.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            particle.style.borderRadius = '50%';
+            particle.style.left = Math.random() * window.innerWidth + 'px';
+            particle.style.top = window.innerHeight + 'px';
+            particle.style.pointerEvents = 'none';
+            particle.style.zIndex = '2';
+            
+            document.body.appendChild(particle);
+            
+            const animation = particle.animate([
+                { transform: 'translateY(0px)', opacity: 0.8 },
+                { transform: `translateY(-${window.innerHeight + 100}px)`, opacity: 0 }
+            ], {
+                duration: 3000 + Math.random() * 2000,
+                easing: 'ease-out'
+            });
+            
+            animation.onfinish = () => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            };
+        }
+
+        // Performance monitoring for smooth gameplay
+        let lastFrameTime = 0;
+        let frameCount = 0;
+        let fps = 60;
+
+        function updateFPS(currentTime) {
+            frameCount++;
+            if (currentTime - lastFrameTime >= 1000) {
+                fps = Math.round((frameCount * 1000) / (currentTime - lastFrameTime));
+                frameCount = 0;
+                lastFrameTime = currentTime;
+                
+                // Adjust particle count based on performance
+                const particles = document.querySelectorAll('.particle').length;
+                if (fps < 30 && particles > 20) {
+                    // Remove some particles for better performance
+                    const particlesToRemove = document.querySelectorAll('.particle');
+                    for (let i = 0; i < 10 && i < particlesToRemove.length; i++) {
+                        particlesToRemove[i].remove();
+                    }
+                }
+            }
+            requestAnimationFrame(updateFPS);
+        }
+
+        // Start FPS monitoring
+        requestAnimationFrame(updateFPS);
+
+        // Add touch support for mobile devices
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.id === 'mainButton' || e.target.closest('#mainButton')) {
+                e.preventDefault(); // Prevent double-tap zoom
+            }
+        });
+
+        // Prevent context menu on right-click for cleaner experience
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // Add visual feedback for high scores
+        function celebrateHighScore() {
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    createCelebrationParticle();
+                }, i * 100);
+            }
+        }
+
+        function createCelebrationParticle() {
+            const colors = ['#00ffff', '#ff0080', '#00ff41', '#ffd700'];
+            const particle = document.createElement('div');
+            particle.style.position = 'absolute';
+            particle.style.width = '8px';
+            particle.style.height = '8px';
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.borderRadius = '50%';
+            particle.style.left = '50%';
+            particle.style.top = '50%';
+            particle.style.pointerEvents = 'none';
+            particle.style.zIndex = '10';
+            particle.style.boxShadow = `0 0 10px ${particle.style.background}`;
+            
+            document.body.appendChild(particle);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 100 + Math.random() * 200;
+            const duration = 1000 + Math.random() * 1000;
+            
+            const animation = particle.animate([
+                { 
+                    transform: 'translate(-50%, -50%) scale(1)', 
+                    opacity: 1 
+                },
+                { 
+                    transform: `translate(${Math.cos(angle) * velocity - 50}%, ${Math.sin(angle) * velocity - 50}%) scale(0)`, 
+                    opacity: 0 
+                }
+            ], {
+                duration: duration,
+                easing: 'ease-out'
+            });
+            
+            animation.onfinish = () => {
+                if (particle.parentNode) {
+                    particle.parentNode.removeChild(particle);
+                }
+            };
+        }
+    </script>
+</body>
+</html>
