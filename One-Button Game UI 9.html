@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Dash - One Button Challenge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-canvas {
+            background: radial-gradient(ellipse at center, #0f1419 0%, #000000 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .score, .level, .lives {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            pointer-events: all;
+        }
+
+        .menu-content {
+            text-align: center;
+            max-width: 400px;
+            padding: 40px;
+        }
+
+        .game-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease-in-out infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+
+        .main-button {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 15px 40px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+            pointer-events: all;
+        }
+
+        .main-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .main-button:active {
+            transform: translateY(0);
+        }
+
+        .theme-selector {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .theme-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: all;
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-classic { background: linear-gradient(45deg, #1e3c72, #2a5298); }
+        .theme-neon { background: linear-gradient(45deg, #ff0081, #ff8c00); }
+        .theme-forest { background: linear-gradient(45deg, #11998e, #38ef7d); }
+        .theme-sunset { background: linear-gradient(45deg, #fa709a, #fee140); }
+
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .leaderboard h3 {
+            margin-bottom: 15px;
+            color: #4ecdc4;
+        }
+
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 30px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .pause-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+        }
+
+        .game-over-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: bold;
+            color: #ff6b6b;
+            text-shadow: 0 0 20px #ff6b6b;
+            animation: gameOverPulse 2s ease-in-out;
+            z-index: 50;
+        }
+
+        @keyframes gameOverPulse {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+        }
+
+        @media (max-width: 768px) {
+            .game-title { font-size: 2.5rem; }
+            .main-button { font-size: 1.2rem; padding: 12px 30px; }
+            .hud { top: 10px; left: 10px; right: 10px; }
+        }
+
+        .achievement {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            transform: translateX(300px);
+            animation: slideInAchievement 3s ease-in-out;
+            z-index: 50;
+        }
+
+        @keyframes slideInAchievement {
+            0% { transform: translateX(300px); }
+            20%, 80% { transform: translateX(0); }
+            100% { transform: translateX(300px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" class="game-canvas" width="800" height="600"></canvas>
+        
+        <div class="ui-overlay">
+            <div class="hud">
+                <div class="score">Score: <span id="scoreValue">0</span></div>
+                <div class="level">Level: <span id="levelValue">1</span></div>
+                <div class="lives">Lives: <span id="livesValue">3</span></div>
+            </div>
+        </div>
+
+        <div id="mainMenu" class="menu-overlay">
+            <div class="menu-content">
+                <h1 class="game-title">ORBIT DASH</h1>
+                <p class="subtitle">Master the Art of Timing</p>
+                
+                <div class="theme-selector">
+                    <button class="theme-btn theme-classic" onclick="setTheme('classic')"></button>
+                    <button class="theme-btn theme-neon" onclick="setTheme('neon')"></button>
+                    <button class="theme-btn theme-forest" onclick="setTheme('forest')"></button>
+                    <button class="theme-btn theme-sunset" onclick="setTheme('sunset')"></button>
+                </div>
+
+                <button class="main-button" onclick="startGame()">START GAME</button>
+                
+                <div class="leaderboard">
+                    <h3>🏆 Leaderboard</h3>
+                    <div id="leaderboardList"></div>
+                </div>
+            </div>
+
+            <div class="instructions">
+                <strong>SPACEBAR or CLICK</strong> - Control your orbit • Avoid obstacles • Collect power-ups
+            </div>
+        </div>
+
+        <div id="pauseMenu" class="menu-overlay" style="display: none;">
+            <div class="pause-menu">
+                <h2>Game Paused</h2>
+                <button class="main-button" onclick="resumeGame()" style="margin: 10px;">Resume</button>
+                <button class="main-button" onclick="restartGame()" style="margin: 10px;">Restart</button>
+                <button class="main-button" onclick="goToMenu()" style="margin: 10px;">Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class OrbitDashGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.gameState = 'menu'; // menu, playing, paused, gameOver
+                
+                // Game variables
+                this.player = {
+                    angle: 0,
+                    radius: 150,
+                    baseRadius: 150,
+                    speed: 0.02,
+                    clockwise: true,
+                    powerUpActive: false,
+                    powerUpTimer: 0
+                };
+                
+                this.obstacles = [];
+                this.powerUps = [];
+                this.particles = [];
+                this.score = 0;
+                this.level = 1;
+                this.lives = 3;
+                this.maxLives = 3;
+                this.obstacleSpeed = 1;
+                this.theme = 'classic';
+                this.achievements = [];
+                
+                // Timing and spawning
+                this.lastObstacleSpawn = 0;
+                this.lastPowerUpSpawn = 0;
+                this.obstacleSpawnRate = 2000;
+                this.powerUpSpawnRate = 8000;
+                
+                this.themes = {
+                    classic: {
+                        bg: ['#0f1419', '#000000'],
+                        player: '#4ecdc4',
+                        obstacle: '#ff6b6b',
+                        powerUp: '#ffd700',
+                        particle: '#ffffff'
+                    },
+                    neon: {
+                        bg: ['#000000', '#1a0033'],
+                        player: '#00ff88',
+                        obstacle: '#ff0081',
+                        powerUp: '#ff8c00',
+                        particle: '#00ffff'
+                    },
+                    forest: {
+                        bg: ['#0d4f3c', '#001a0e'],
+                        player: '#38ef7d',
+                        obstacle: '#ff7675',
+                        powerUp: '#fdcb6e',
+                        particle: '#55a3ff'
+                    },
+                    sunset: {
+                        bg: ['#2d1b69', '#11103a'],
+                        player: '#fee140',
+                        obstacle: '#fa709a',
+                        powerUp: '#48cae4',
+                        particle: '#f72585'
+                    }
+                };
+                
+                this.loadLeaderboard();
+                this.bindEvents();
+                this.gameLoop();
+                this.createBackgroundParticles();
+            }
+            
+            bindEvents() {
+                // Main game control
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        this.handleInput();
+                    }
+                    if (e.code === 'Escape' && this.gameState === 'playing') {
+                        this.pauseGame();
+                    }
+                });
+                
+                this.canvas.addEventListener('click', () => {
+                    if (this.gameState === 'playing') {
+                        this.handleInput();
+                    }
+                });
+                
+                // Prevent context menu
+                this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            }
+            
+            handleInput() {
+                if (this.gameState === 'playing') {
+                    this.player.clockwise = !this.player.clockwise;
+                    this.createClickParticles();
+                }
+            }
+            
+            startGame() {
+                this.gameState = 'playing';
+                this.resetGame();
+                document.getElementById('mainMenu').style.display = 'none';
+                this.canvas.focus();
+            }
+            
+            pauseGame() {
+                if (this.gameState === 'playing') {
+                    this.gameState = 'paused';
+                    document.getElementById('pauseMenu').style.display = 'flex';
+                }
+            }
+            
+            resumeGame() {
+                this.gameState = 'playing';
+                document.getElementById('pauseMenu').style.display = 'none';
+            }
+            
+            restartGame() {
+                this.resetGame();
+                this.gameState = 'playing';
+                document.getElementById('pauseMenu').style.display = 'none';
+            }
+            
+            goToMenu() {
+                this.gameState = 'menu';
+                document.getElementById('pauseMenu').style.display = 'none';
+                document.getElementById('mainMenu').style.display = 'flex';
+            }
+            
+            resetGame() {
+                this.player.angle = 0;
+                this.player.radius = this.player.baseRadius;
+                this.player.clockwise = true;
+                this.player.powerUpActive = false;
+                this.player.powerUpTimer = 0;
+                this.obstacles = [];
+                this.powerUps = [];
+                this.particles = [];
+                this.score = 0;
+                this.level = 1;
+                this.lives = this.maxLives;
+                this.obstacleSpeed = 1;
+                this.lastObstacleSpawn = Date.now();
+                this.lastPowerUpSpawn = Date.now();
+                this.updateHUD();
+            }
+            
+            gameOver() {
+                this.gameState = 'gameOver';
+                this.saveScore();
+                this.showGameOverEffect();
+                setTimeout(() => {
+                    this.goToMenu();
+                    this.updateLeaderboard();
+                }, 3000);
+            }
+            
+            showGameOverEffect() {
+                const effect = document.createElement('div');
+                effect.className = 'game-over-effect';
+                effect.textContent = 'GAME OVER';
+                document.querySelector('.game-container').appendChild(effect);
+                setTimeout(() => effect.remove(), 2000);
+            }
+            
+            update() {
+                if (this.gameState !== 'playing') return;
+                
+                // Update player
+                const direction = this.player.clockwise ? 1 : -1;
+                this.player.angle += this.player.speed * direction;
+                
+                // Handle power-up timer
+                if (this.player.powerUpActive) {
+                    this.player.powerUpTimer--;
+                    if (this.player.powerUpTimer <= 0) {
+                        this.player.powerUpActive = false;
+                        this.player.radius = this.player.baseRadius;
+                    }
+                }
+                
+                // Spawn obstacles
+                const now = Date.now();
+                if (now - this.lastObstacleSpawn > this.obstacleSpawnRate) {
+                    this.spawnObstacle();
+                    this.lastObstacleSpawn = now;
+                }
+                
+                // Spawn power-ups
+                if (now - this.lastPowerUpSpawn > this.powerUpSpawnRate) {
+                    this.spawnPowerUp();
+                    this.lastPowerUpSpawn = now;
+                }
+                
+                // Update obstacles
+                this.obstacles.forEach((obstacle, index) => {
+                    obstacle.x -= this.obstacleSpeed;
+                    if (obstacle.x + obstacle.width < 0) {
+                        this.obstacles.splice(index, 1);
+                        this.score += 10;
+                        this.checkLevelUp();
+                    }
+                });
+                
+                // Update power-ups
+                this.powerUps.forEach((powerUp, index) => {
+                    powerUp.x -= this.obstacleSpeed;
+                    if (powerUp.x + powerUp.size < 0) {
+                        this.powerUps.splice(index, 1);
+                    }
+                });
+                
+                // Update particles
+                this.particles = this.particles.filter(particle => {
+                    particle.life--;
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.vy += 0.1; // gravity
+                    return particle.life > 0;
+                });
+                
+                this.checkCollisions();
+                this.updateHUD();
+            }
+            
+            spawnObstacle() {
+                const height = 50 + Math.random() * 100;
+                const gap = 120 + this.level * 5;
+                const y = Math.random() * (this.canvas.height - height - gap);
+                
+                this.obstacles.push({
+                    x: this.canvas.width,
+                    y: y,
+                    width: 30,
+                    height: height,
+                    type: 'top'
+                });
+                
+                this.obstacles.push({
+                    x: this.canvas.width,
+                    y: y + height + gap,
+                    width: 30,
+                    height: this.canvas.height - (y + height + gap),
+                    type: 'bottom'
+                });
+            }
+            
+            spawnPowerUp() {
+                const types = ['shield', 'score', 'life'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                
+                this.powerUps.push({
+                    x: this.canvas.width,
+                    y: Math.random() * (this.canvas.height - 40) + 20,
+                    size: 20,
+                    type: type,
+                    rotation: 0
+                });
+            }
+            
+            checkCollisions() {
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                const playerX = centerX + Math.cos(this.player.angle) * this.player.radius;
+                const playerY = centerY + Math.sin(this.player.angle) * this.player.radius;
+                const playerSize = 12;
+                
+                // Check obstacle collisions
+                this.obstacles.forEach(obstacle => {
+                    if (playerX + playerSize > obstacle.x &&
+                        playerX - playerSize < obstacle.x + obstacle.width &&
+                        playerY + playerSize > obstacle.y &&
+                        playerY - playerSize < obstacle.y + obstacle.height) {
+                        
+                        if (!this.player.powerUpActive) {
+                            this.lives--;
+                            this.createExplosionParticles(playerX, playerY);
+                            
+                            if (this.lives <= 0) {
+                                this.gameOver();
+                                return;
+                            }
+                        }
+                        
+                        // Remove the obstacle that was hit
+                        this.obstacles.splice(this.obstacles.indexOf(obstacle), 1);
+                    }
+                });
+                
+                // Check power-up collisions
+                this.powerUps.forEach((powerUp, index) => {
+                    if (playerX + playerSize > powerUp.x &&
+                        playerX - playerSize < powerUp.x + powerUp.size &&
+                        playerY + playerSize > powerUp.y &&
+                        playerY - playerSize < powerUp.y + powerUp.size) {
+                        
+                        this.collectPowerUp(powerUp);
+                        this.powerUps.splice(index, 1);
+                    }
+                });
+            }
+            
+            collectPowerUp(powerUp) {
+                switch (powerUp.type) {
+                    case 'shield':
+                        this.player.powerUpActive = true;
+                        this.player.powerUpTimer = 300; // 5 seconds at 60fps
+                        this.player.radius = this.player.baseRadius * 0.7;
+                        this.showAchievement('Shield Activated!');
+                        break;
+                    case 'score':
+                        this.score += 100;
+                        this.showAchievement('+100 Points!');
+                        break;
+                    case 'life':
+                        if (this.lives < this.maxLives) {
+                            this.lives++;
+                            this.showAchievement('Extra Life!');
+                        } else {
+                            this.score += 50;
+                            this.showAchievement('+50 Bonus!');
+                        }
+                        break;
+                }
+                
+                this.createPowerUpParticles(powerUp.x + powerUp.size/2, powerUp.y + powerUp.size/2);
+            }
+            
+            checkLevelUp() {
+                const newLevel = Math.floor(this.score / 200) + 1;
+                if (newLevel > this.level) {
+                    this.level = newLevel;
+                    this.obstacleSpeed += 0.2;
+                    this.obstacleSpawnRate = Math.max(1000, this.obstacleSpawnRate - 100);
+                    this.showAchievement(`Level ${this.level}!`);
+                }
+            }
+            
+            showAchievement(text) {
+                const achievement = document.createElement('div');
+                achievement.className = 'achievement';
+                achievement.textContent = text;
+                document.querySelector('.game-container').appendChild(achievement);
+                setTimeout(() => achievement.remove(), 3000);
+            }
+            
+            createClickParticles() {
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                const playerX = centerX + Math.cos(this.player.angle) * this.player.radius;
+                const playerY = centerY + Math.sin(this.player.angle) * this.player.radius;
+                
+                for (let i = 0; i < 5; i++) {
+                    this.particles.push({
+                        x: playerX,
+                        y: playerY,
+                        vx: (Math.random() - 0.5) * 4,
+                        vy: (Math.random() - 0.5) * 4,
+                        life: 20,
+                        size: 3,
+                        color: this.themes[this.theme].player
+                    });
+                }
+            }
+            
+            createExplosionParticles(x, y) {
+                for (let i = 0; i < 15; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        life: 30,
+                        size: 4,
+                        color: this.themes[this.theme].obstacle
+                    });
+                }
+            }
+            
+            createPowerUpParticles(x, y) {
+                for (let i = 0; i < 10; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: 25,
+                        size: 3,
+                        color: this.themes[this.theme].powerUp
+                    });
+                }
+            }
+            
+            createBackgroundParticles() {
+                for (let i = 0; i < 50; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * window.innerWidth + 'px';
+                    particle.style.top = Math.random() * window.innerHeight + 'px';
+                    particle.style.width = (Math.random() * 4 + 2) + 'px';
+                    particle.style.height = particle.style.width;
+                    particle.style.background = this.themes[this.theme].particle;
+                    particle.style.animationDelay = Math.random() * 6 + 's';
+                    particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                    document.body.appendChild(particle);
+                }
+            }
+            
+            render() {
+                // Clear canvas with gradient background
+                const gradient = this.ctx.createRadialGradient(
+                    this.canvas.width/2, this.canvas.height/2, 0,
+                    this.canvas.width/2, this.canvas.height/2, Math.max(this.canvas.width, this.canvas.height)
+                );
+                gradient.addColorStop(0, this.themes[this.theme].bg[0]);
+                gradient.addColorStop(1, this.themes[this.theme].bg[1]);
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw orbit path
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, this.player.radius, 0, Math.PI * 2);
+                this.ctx.stroke();
+                
+                // Draw center
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Draw obstacles
+                this.ctx.fillStyle = this.themes[this.theme].obstacle;
+                this.obstacles.forEach(obstacle => {
+                    this.ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                    
+                    // Add glow effect
+                    this.ctx.shadowColor = this.themes[this.theme].obstacle;
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                    this.ctx.shadowBlur = 0;
+                });
+                
+                // Draw power-ups
+                this.powerUps.forEach(powerUp => {
+                    powerUp.rotation += 0.1;
+                    this.ctx.save();
+                    this.ctx.translate(powerUp.x + powerUp.size/2, powerUp.y + powerUp.size/2);
+                    this.ctx.rotate(powerUp.rotation);
+                    
+                    this.ctx.fillStyle = this.themes[this.theme].powerUp;
+                    this.ctx.shadowColor = this.themes[this.theme].powerUp;
+                    this.ctx.shadowBlur = 15;
+                    
+                    if (powerUp.type === 'shield') {
+                        this.ctx.fillRect(-powerUp.size/2, -powerUp.size/2, powerUp.size, powerUp.size);
+                    } else if (powerUp.type === 'score') {
+                        this.ctx.beginPath();
+                        for (let i = 0; i < 5; i++) {
+                            const angle = (i * 4 * Math.PI) / 5;
+                            const radius = i % 2 === 0 ? powerUp.size/2 : powerUp.size/4;
+                            const x = Math.cos(angle) * radius;
+                            const y = Math.sin(angle) * radius;
+                            if (i === 0) this.ctx.moveTo(x, y);
+                            else this.ctx.lineTo(x, y);
+                        }
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                    } else {
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, powerUp.size/2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    
+                    this.ctx.shadowBlur = 0;
+                    this.ctx.restore();
+                });
+                
+                // Draw particles
+                this.particles.forEach(particle => {
+                    this.ctx.globalAlpha = particle.life / 30;
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                this.ctx.globalAlpha = 1;
+                
+                // Draw player
+                const playerX = centerX + Math.cos(this.player.angle) * this.player.radius;
+                const playerY = centerY + Math.sin(this.player.angle) * this.player.radius;
+                
+                this.ctx.fillStyle = this.themes[this.theme].player;
+                this.ctx.shadowColor = this.themes[this.theme].player;
+                this.ctx.shadowBlur = this.player.powerUpActive ? 20 : 10;
+                
+                this.ctx.beginPath();
+                this.ctx.arc(playerX, playerY, this.player.powerUpActive ? 15 : 12, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Draw shield effect if active
+                if (this.player.powerUpActive) {
+                    this.ctx.strokeStyle = this.themes[this.theme].player;
+                    this.ctx.lineWidth = 3;
+                    this.ctx.globalAlpha = 0.5;
+                    this.ctx.beginPath();
+                    this.ctx.arc(playerX, playerY, 20 + Math.sin(Date.now() * 0.01) * 3, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    this.ctx.globalAlpha = 1;
+                }
+                
+                this.ctx.shadowBlur = 0;
+                
+                // Draw direction indicator
+                if (this.gameState === 'playing') {
+                    const indicatorRadius = this.player.radius + 30;
+                    const nextAngle = this.player.angle + (this.player.clockwise ? 0.5 : -0.5);
+                    const indicatorX = centerX + Math.cos(nextAngle) * indicatorRadius;
+                    const indicatorY = centerY + Math.sin(nextAngle) * indicatorRadius;
+                    
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(indicatorX, indicatorY, 4, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+            }
+            
+            updateHUD() {
+                document.getElementById('scoreValue').textContent = this.score;
+                document.getElementById('levelValue').textContent = this.level;
+                document.getElementById('livesValue').textContent = this.lives;
+            }
+            
+            saveScore() {
+                const scores = this.getLeaderboard();
+                scores.push({
+                    score: this.score,
+                    level: this.level,
+                    date: new Date().toLocaleDateString()
+                });
+                scores.sort((a, b) => b.score - a.score);
+                scores.splice(5); // Keep top 5
+                localStorage.setItem('orbitDashScores', JSON.stringify(scores));
+            }
+            
+            loadLeaderboard() {
+                this.updateLeaderboard();
+            }
+            
+            getLeaderboard() {
+                try {
+                    return JSON.parse(localStorage.getItem('orbitDashScores')) || [];
+                } catch {
+                    return [];
+                }
+            }
+            
+            updateLeaderboard() {
+                const scores = this.getLeaderboard();
+                const leaderboardList = document.getElementById('leaderboardList');
+                
+                if (scores.length === 0) {
+                    leaderboardList.innerHTML = '<div style="text-align: center; color: #aaa;">No scores yet</div>';
+                    return;
+                }
+                
+                leaderboardList.innerHTML = scores.map((score, index) => 
+                    `<div class="leaderboard-entry">
+                        <span>#${index + 1} - Level ${score.level}</span>
+                        <span>${score.score.toLocaleString()}</span>
+                    </div>`
+                ).join('');
+            }
+            
+            gameLoop() {
+                this.update();
+                this.render();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+        
+        // Global functions for UI
+        let game;
+        
+        function startGame() {
+            game.startGame();
+        }
+        
+        function resumeGame() {
+            game.resumeGame();
+        }
+        
+        function restartGame() {
+            game.restartGame();
+        }
+        
+        function goToMenu() {
+            game.goToMenu();
+        }
+        
+        function setTheme(themeName) {
+            game.theme = themeName;
+            
+            // Update CSS custom properties for theme
+            const theme = game.themes[themeName];
+            document.body.style.background = `linear-gradient(135deg, ${theme.bg[0]} 0%, ${theme.bg[1]} 100%)`;
+            
+            // Update background particles
+            document.querySelectorAll('.particle').forEach(p => p.remove());
+            game.createBackgroundParticles();
+            
+            // Add visual feedback
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.style.transform = 'scale(1)';
+                btn.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+            });
+            
+            const selectedBtn = document.querySelector(`.theme-${themeName}`);
+            selectedBtn.style.transform = 'scale(1.2)';
+            selectedBtn.style.boxShadow = '0 8px 16px rgba(255, 255, 255, 0.3)';
+        }
+        
+        // Initialize game when page loads
+        window.addEventListener('load', () => {
+            game = new OrbitDashGame();
+            setTheme('classic');
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Maintain aspect ratio and center the canvas
+            const container = document.querySelector('.game-container');
+            const canvas = document.getElementById('gameCanvas');
+            const containerRect = container.getBoundingClientRect();
+            
+            const scale = Math.min(
+                containerRect.width / 800,
+                containerRect.height / 600
+            );
+            
+            canvas.style.transform = `scale(${scale})`;
+        });
+        
+        // Trigger initial resize
+        window.dispatchEvent(new Event('resize'));
+        
+        // Add keyboard shortcuts info
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyH' && game.gameState === 'menu') {
+                alert(`🎮 ORBIT DASH - Controls & Tips
+                
+🕹️ CONTROLS:
+• SPACEBAR or CLICK - Change orbit direction
+• ESC - Pause game (during play)
+
+🎯 GAMEPLAY:
+• Navigate between obstacles by changing orbit direction
+• Collect power-ups for special abilities
+• Each level increases speed and difficulty
+• Get 10 points for passing obstacles
+• Bonus points for power-ups and survival
+
+⚡ POWER-UPS:
+• 🛡️ Shield (Square) - Temporary invincibility
+• ⭐ Score (Star) - Instant 100 points
+• ❤️ Life (Circle) - Extra life or bonus points
+
+🏆 ACHIEVEMENTS:
+• Reach higher levels for bragging rights
+• Compete on the leaderboard
+• Master the art of timing!
+
+Good luck, commander! 🚀`);
+            }
+        });
+        
+        // Add performance monitoring
+        let fps = 0;
+        let lastTime = performance.now();
+        let frameCount = 0;
+        
+        function updateFPS() {
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime >= lastTime + 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                
+                // Optional: Display FPS in console for debugging
+                if (game && game.gameState === 'playing') {
+                    console.log(`FPS: ${fps}`);
+                }
+            }
+            requestAnimationFrame(updateFPS);
+        }
+        
+        updateFPS();
+        
+        // Add sound effects (using Web Audio API for professional touch)
+        class AudioManager {
+            constructor() {
+                this.audioContext = null;
+                this.sounds = {};
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.createSounds();
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+            
+            createSounds() {
+                // Create simple sound effects using oscillators
+                this.sounds = {
+                    click: () => this.playTone(800, 0.1, 'sine'),
+                    powerUp: () => this.playTone(1200, 0.2, 'square'),
+                    hit: () => this.playTone(200, 0.3, 'sawtooth'),
+                    levelUp: () => this.playMelody([600, 800, 1000], 0.15)
+                };
+            }
+            
+            playTone(frequency, duration, type = 'sine') {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+                oscillator.type = type;
+                
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
+                
+                oscillator.start();
+                oscillator.stop(this.audioContext.currentTime + duration);
+            }
+            
+            playMelody(frequencies, noteDuration) {
+                frequencies.forEach((freq, index) => {
+                    setTimeout(() => this.playTone(freq, noteDuration), index * noteDuration * 1000);
+                });
+            }
+            
+            play(soundName) {
+                if (this.sounds[soundName]) {
+                    this.sounds[soundName]();
+                }
+            }
+        }
+        
+        // Initialize audio manager
+        const audioManager = new AudioManager();
+        
+        // Add touch support for mobile
+        let touchStartX = 0;
+        let touchStartY = 0;
+        
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (game && game.gameState === 'playing') {
+                game.handleInput();
+                audioManager.play('click');
+            }
+        });
+        
+        // Prevent zoom on double tap
+        document.addEventListener('touchend', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+    </script>
+</body>
+</html>
